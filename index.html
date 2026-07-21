@@ -79,12 +79,24 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .btn.fill:disabled{background:var(--p-disabled);cursor:default;transform:none}
 .btn.weak{background:var(--green-bg);color:var(--green-dark)}
 
-/* ── 변환 완료 ── */
-.donebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 0}
-.donebox .dc{width:74px;height:74px;border-radius:50%;background:var(--green100);color:var(--green600);display:flex;align-items:center;justify-content:center}
-.donebox .dc svg{width:36px;height:36px;stroke-width:2.6}
-.donebox .dt{font-size:22px;font-weight:800;letter-spacing:-.5px}
-.donebox .ds{font-size:var(--fs-body);color:var(--g500);font-weight:500;text-align:center;line-height:1.6}
+/* ── 완료 오버레이 (§4.6: 체크 팝인 → 제목 → 자동 전환·슬라이드) ── */
+.doneo{position:fixed;inset:0;background:#fff;z-index:860;display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:24px}
+.doneo.on{display:flex}
+.doneo.out{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s;transform:translateX(-44px);opacity:0}
+.dcirc{width:86px;height:86px}
+.dcirc circle{fill:var(--green600);transform-origin:50% 50%;animation:dpop .38s cubic-bezier(.3,1.5,.5,1) backwards}
+.dcirc path{stroke:#fff;stroke-width:7;fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:60;stroke-dashoffset:60;animation:ddraw .34s ease-out .22s forwards}
+@keyframes dpop{0%{transform:scale(0)}100%{transform:scale(1)}}
+@keyframes ddraw{to{stroke-dashoffset:0}}
+.doneo .dt{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.doneo .ds{font-size:var(--fs-body);color:var(--g500);font-weight:500}
+/* ── shake (§4.9 비활성 눌림) ── */
+@keyframes tfshake{10%,90%{transform:translateX(-1px)}20%,80%{transform:translateX(2px)}30%,50%,70%{transform:translateX(-4px)}40%,60%{transform:translateX(4px)}}
+.shake{animation:tfshake .4s}
+/* ── 확대(돋보기) ── */
+.zoomo{position:fixed;inset:0;background:rgba(25,31,40,.8);z-index:870;display:none;align-items:center;justify-content:center;cursor:zoom-out}
+.zoomo.on{display:flex}
+.zoomo canvas,.zoomo img{max-width:92vw;max-height:92vh;border-radius:8px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.4)}
 
 /* ── 병합: 페이지 그리드 ── */
 .mtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;min-height:30px}
@@ -146,20 +158,14 @@ input[type=file]{display:none}
       <div id="cvMain">
         <div class="zone" id="cvZone">
           <div class="zi"><svg class="li" viewBox="0 0 24 24"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></div>
-          <div class="zt">PDF를 끌어다 놓으세요</div>
-          <div class="zs">클릭해서 골라도 돼요 · 폴더를 놓으면 안의 PDF를 전부 변환해요</div>
+          <div class="zt">PDF나 이미지를 끌어다 놓으세요</div>
+          <div class="zs">클릭해서 골라도 돼요</div>
         </div>
         <div class="frows" id="cvRows"></div>
         <div class="foot"><button type="button" class="btn fill" id="cvGo" disabled>변환하기</button></div>
       </div>
-      <div id="cvDone" class="donebox" style="display:none">
-        <div class="dc"><svg class="li" viewBox="0 0 24 24"><path d="M4.5 12.5 10 18 19.5 7"/></svg></div>
-        <div class="dt" id="cvDoneT"></div>
-        <div class="ds" id="cvDoneS"></div>
-        <div class="foot" style="width:100%;max-width:340px"><button type="button" class="btn weak" id="cvAgain">확인</button></div>
-      </div>
     </div>
-    <input type="file" id="cvInput" accept=".pdf,application/pdf" multiple>
+    <input type="file" id="cvInput" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple>
   </section>
 
   <!-- 병합하기: PDF·이미지 → 한 PDF -->
@@ -169,7 +175,7 @@ input[type=file]{display:none}
         <div class="zone" id="mgZone" style="padding:76px 24px">
           <div class="zi"><svg class="li" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8-18h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3M12 8v8M8 12h8"/></svg></div>
           <div class="zt">PDF나 이미지를 끌어다 놓으세요</div>
-          <div class="zs">놓은 순서대로 한 PDF가 돼요 · 페이지 사이에 놓으면 그 자리에 들어가요</div>
+          <div class="zs">놓은 순서대로 한 PDF가 돼요</div>
         </div>
       </div>
     </div>
@@ -189,6 +195,13 @@ input[type=file]{display:none}
 </div>
 
 <div class="busy" id="busy"><div class="spin"></div><div class="bt" id="busyT">PDF를 만들고 있어요</div></div>
+<div class="doneo" id="doneo">
+  <svg class="dcirc" viewBox="0 0 86 86"><circle cx="43" cy="43" r="43"/><path d="M24 45l14 13 24-28"/></svg>
+  <div class="dt" id="doneT"></div>
+  <div class="ds" id="doneS"></div>
+  <button type="button" class="btn weak" id="doneBtn" style="display:none;max-width:340px">확인</button>
+</div>
+<div class="zoomo" id="zoomo"></div>
 <div class="toast" id="toast"></div>
 
 <script src="./vendor/pdf-lib.min.js"></script>
@@ -251,9 +264,9 @@ let cvFiles = [];                      // {file, pages, status:'ready'|'work'|'o
 function renderDirChip(){
   const n = $('#dirName'), clear = $('#dirClear');
   if (dropDir){ n.innerHTML = `끌어온 폴더 <b></b>에 저장해요`; n.querySelector('b').textContent = `'${dropDir.name}'`; clear.style.display = ''; }
-  else if (savedDir){ n.innerHTML = `저장 폴더 <b></b>`; n.querySelector('b').textContent = savedDir.name; clear.style.display = 'none'; }
-  else { n.textContent = '폴더를 고르면 PNG가 바로 거기에 저장돼요'; clear.style.display = 'none'; }
-  if (!hasFS){ n.textContent = 'PNG는 다운로드 폴더로 저장돼요'; $('#dirPick').style.display = 'none'; }
+  else if (savedDir){ n.innerHTML = `저장 폴더 - <b></b>`; n.querySelector('b').textContent = savedDir.name; clear.style.display = 'none'; }
+  else { n.textContent = '폴더를 고르면 저장 위치를 정하지 않아도 계속 거기에 저장돼요'; clear.style.display = 'none'; }
+  if (!hasFS){ n.textContent = '변환한 파일은 다운로드 폴더로 받아요'; $('#dirPick').style.display = 'none'; }
 }
 $('#dirPick').addEventListener('click', async () => {
   if (!hasFS) return;
@@ -266,10 +279,11 @@ function renderCvRows(){
   const box = $('#cvRows'); box.innerHTML = '';
   cvFiles.forEach((f, i) => {
     const row = document.createElement('div'); row.className = 'frow';
-    const st = f.status === 'work' ? `<div class="s ok">변환 중 · ${f.done}/${f.pages}장</div>`
+    const readyTxt = f.kind === 'img' ? '이미지 → PDF' : (f.pages ? `${f.pages}장 → PNG` : '');
+    const st = f.status === 'work' ? `<div class="s ok">변환 중${f.kind === 'pdf' ? ` · ${f.done}/${f.pages}장` : ''}</div>`
       : f.status === 'ok' ? `<div class="s ok">저장했어요</div>`
       : f.status === 'bad' ? `<div class="s bad">${f.msg}</div>`
-      : `<div class="s">${f.pages ? f.pages + '장' : ''}</div>`;
+      : `<div class="s">${readyTxt}</div>`;
     row.innerHTML = `<div class="fi"><svg class="li" viewBox="0 0 24 24"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/></svg></div>
       <div class="fn"><div class="n"></div>${st}</div><button type="button" class="rm" aria-label="빼기">×</button>`;
     row.querySelector('.n').textContent = f.file.name;
@@ -280,21 +294,35 @@ function renderCvRows(){
 }
 
 async function addCvFiles(files){
-  const pdfs = files.filter(f => /\.pdf$/i.test(f.name));
-  const skipped = files.length - pdfs.length;
-  if (skipped) toast(`PDF만 변환할 수 있어요 — ${skipped}개는 뺐어요 (이미지는 병합하기에서 써요)`);
-  for (const file of pdfs){
-    const entry = { file, pages: null, status: 'ready', done: 0, msg: '' };
+  const ok = files.filter(f => /\.(pdf|png|jpe?g)$/i.test(f.name));
+  const skipped = files.length - ok.length;
+  if (skipped) toast(`PDF·PNG·JPG만 넣을 수 있어요 — ${skipped}개는 뺐어요`);
+  for (const file of ok){
+    const isPdf = /\.pdf$/i.test(file.name);
+    const entry = { file, kind: isPdf ? 'pdf' : 'img', pages: isPdf ? null : 1, status: 'ready', done: 0, msg: '' };
     cvFiles.push(entry); renderCvRows();
-    try {
-      const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
-      entry.pages = doc.numPages; doc.destroy();
-    } catch (err) {
-      entry.status = 'bad';
-      entry.msg = err && err.name === 'PasswordException' ? '암호가 걸린 PDF예요' : 'PDF를 열 수 없어요';
+    if (isPdf){
+      try {
+        const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        entry.pages = doc.numPages; doc.destroy();
+      } catch (err) {
+        entry.status = 'bad';
+        entry.msg = err && err.name === 'PasswordException' ? '암호가 걸린 PDF예요' : 'PDF를 열 수 없어요';
+      }
     }
     renderCvRows();
   }
+}
+
+/* 이미지 1장 → A4 세로 맞춤 PDF */
+async function imageToPdf(file){
+  const bytes = await file.arrayBuffer();
+  const out = await PDFDocument.create();
+  const img = /\.png$/i.test(file.name) ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+  const s = Math.min(A4[0] / img.width, A4[1] / img.height);
+  const page = out.addPage([A4[0], A4[1]]);
+  page.drawImage(img, { x: (A4[0] - img.width * s) / 2, y: (A4[1] - img.height * s) / 2, width: img.width * s, height: img.height * s });
+  return { name: baseName(file.name) + '.pdf', blob: new Blob([await out.save()], { type: 'application/pdf' }) };
 }
 
 const cvZone = $('#cvZone');
@@ -342,47 +370,63 @@ async function convertPdfToPngs(file, onProgress){
 }
 
 $('#cvGo').addEventListener('click', async () => {
-  let dir = dropDir || savedDir;
-  if (hasFS){
-    if (!dir){
-      try { dir = savedDir = await showDirectoryPicker({ mode: 'readwrite' }); await idb.set('outDir', dir); renderDirChip(); }
-      catch(e){ return; }
-    }
-    if (!(await ensureRW(dir))){ toast('폴더 권한을 허용하면 저장할 수 있어요'); return; }
-  }
+  if (!cvFiles.length) return;
+  // 폴더를 골라뒀으면 그 폴더에 즉시 저장(재선택 없음), 안 골랐으면 다운로드 폴더로
+  const dir = dropDir || savedDir;
+  if (dir && !(await ensureRW(dir))){ toast('폴더 권한을 허용하면 저장할 수 있어요'); return; }
   $('#cvGo').disabled = true;
-  let saved = 0, over = 0, failed = 0;
+  let png = 0, pdf = 0, over = 0, failed = 0;
+  const save = async it => {
+    if (dir){
+      let exists = false; try { await dir.getFileHandle(it.name); exists = true; } catch(e){}
+      const fh = await dir.getFileHandle(it.name, { create: true });
+      const w = await fh.createWritable(); await w.write(it.blob); await w.close();
+      if (exists) over++;
+    } else dl(it.name, it.blob);
+  };
   for (const f of cvFiles){
     if (f.status === 'bad'){ failed++; continue; }
     f.status = 'work'; f.done = 0; renderCvRows();
     try {
-      const items = await convertPdfToPngs(f.file, (i) => { f.done = i; renderCvRows(); });
-      for (const it of items){
-        if (dir){
-          let exists = false; try { await dir.getFileHandle(it.name); exists = true; } catch(e){}
-          const fh = await dir.getFileHandle(it.name, { create: true });
-          const w = await fh.createWritable(); await w.write(it.blob); await w.close();
-          if (exists) over++;
-        } else dl(it.name, it.blob);
-        saved++;
-      }
+      if (f.kind === 'pdf'){
+        const items = await convertPdfToPngs(f.file, (i) => { f.done = i; renderCvRows(); });
+        for (const it of items){ await save(it); png++; }
+      } else { await save(await imageToPdf(f.file)); pdf++; }
       f.status = 'ok';
-    } catch (err) { f.status = 'bad'; f.msg = 'PDF를 열 수 없어요'; failed++; }
+    } catch (err) { f.status = 'bad'; f.msg = '열 수 없어요'; failed++; }
     renderCvRows();
   }
-  $('#cvMain').style.display = 'none';
-  $('#cvDone').style.display = '';
-  $('#cvDoneT').textContent = saved ? `PNG ${saved}장을 저장했어요` : '변환하지 못했어요';
-  $('#cvDoneS').textContent = [
-    over ? `같은 이름 ${over}장은 덮어썼어요` : '',
-    failed ? `${failed}개 파일은 열 수 없었어요` : '',
-    !dir && hasFS === false ? '다운로드 폴더를 확인해 주세요' : ''
-  ].filter(Boolean).join(' · ');
+  const parts = [];
+  if (png) parts.push(`PNG ${png}장`);
+  if (pdf) parts.push(`PDF ${pdf}개`);
+  const subs = [];
+  if (over) subs.push(`같은 이름 ${over}장은 덮어썼어요`);
+  if (!dir && parts.length) subs.push('다운로드 폴더로 받았어요');
+  if (failed) subs.push(`${failed}개는 열 수 없었어요`);
+  showDone(parts.length ? `${parts.join('·')} 저장했어요` : '변환하지 못했어요', subs.join(' · '), failed > 0,
+    () => { cvFiles = []; renderCvRows(); });
 });
-$('#cvAgain').addEventListener('click', () => {
-  cvFiles = []; renderCvRows();
-  $('#cvDone').style.display = 'none'; $('#cvMain').style.display = '';
+
+/* §4.9 비활성 버튼 눌림 = shake (disabled는 클릭 투명 → 부모 위임) */
+document.querySelector('#scrConvert .foot').addEventListener('pointerdown', () => {
+  const b = $('#cvGo');
+  if (b.disabled){ b.classList.remove('shake'); void b.offsetWidth; b.classList.add('shake'); }
 });
+
+/* §4.6 완료 화면: 체크 팝인+제목(+한줄 서브) → 1.6초 뒤 왼쪽 슬라이드 자동 전환. 실패 안내가 있으면 버튼형 */
+let doneTimer = null;
+function showDone(title, sub, needBtn, after){
+  const o = $('#doneo');
+  $('#doneT').textContent = title;
+  $('#doneS').textContent = sub || ''; $('#doneS').style.display = sub ? '' : 'none';
+  const btn = $('#doneBtn'); btn.style.display = needBtn ? '' : 'none';
+  const svg = o.querySelector('.dcirc'); const fresh = svg.cloneNode(true); svg.replaceWith(fresh); // 애니 재시작
+  o.classList.remove('out'); o.classList.add('on');
+  const close = () => { o.classList.add('out'); setTimeout(() => { o.classList.remove('on', 'out'); if (after) after(); }, 300); };
+  clearTimeout(doneTimer);
+  if (needBtn) btn.onclick = close;
+  else doneTimer = setTimeout(close, 1600);
+}
 
 /* ═══════════ 병합하기 ═══════════ */
 let seq = 0;
@@ -463,6 +507,7 @@ function renderMerge(){
     card.innerHTML = `<div class="th"></div>
       <div class="lb"><span class="dot"></span><span class="t"></span></div>
       <div class="ops">
+        <button type="button" data-op="zoom" title="확대"><svg class="li" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.6-4.6M11 8.2v5.6M8.2 11h5.6"/></svg></button>
         <button type="button" data-op="rot" title="회전"><svg class="li" viewBox="0 0 24 24"><path d="M20 8a8 8 0 1 0 2 6M20 3v5h-5"/></svg></button>
         <button type="button" data-op="del" title="빼기"><svg class="li" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
       </div>`;
@@ -470,6 +515,7 @@ function renderMerge(){
     card.querySelector('.t').textContent = it.kind === 'pdfPage' ? `${baseName(src.name)} · ${it.pageIndex + 1}` : baseName(src.name);
     card.querySelector('.t').title = src.name;
     if (it.thumb){ card.querySelector('.th').appendChild(it.thumb); }
+    card.querySelector('[data-op=zoom]').addEventListener('click', e => { e.stopPropagation(); openZoom(i); });
     card.querySelector('[data-op=rot]').addEventListener('click', e => { e.stopPropagation(); rotateItem(i); });
     card.querySelector('[data-op=del]').addEventListener('click', e => { e.stopPropagation(); removeItem(i); });
     grid.appendChild(card);
@@ -484,6 +530,40 @@ function renderMerge(){
   grid.appendChild(bar);
 }
 function rotateItem(i){ const it = mgItems[i]; it.rot = (it.rot + 90) % 360; applyRot(it); }
+
+/* 확대(돋보기) — 페이지를 크게 렌더해 전체 화면으로 */
+function rotCanvas(srcImg, sw, sh, rot){
+  if (!rot && srcImg instanceof HTMLCanvasElement) return srcImg;
+  const [w, h] = rot % 180 ? [sh, sw] : [sw, sh];
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d');
+  x.translate(w / 2, h / 2); x.rotate(rot * Math.PI / 180); x.drawImage(srcImg, -sw / 2, -sh / 2);
+  return c;
+}
+function openZoom(i){
+  const it = mgItems[i]; if (!it) return;
+  const o = $('#zoomo'); o.innerHTML = '';
+  (async () => {
+    const src = sources.get(it.srcId);
+    let el;
+    if (it.kind === 'image'){
+      const bmp = await createImageBitmap(new Blob([src.bytes]));
+      el = rotCanvas(bmp, bmp.width, bmp.height, it.rot);
+    } else {
+      const doc = await getPjs(src);
+      const page = await doc.getPage(it.pageIndex + 1);
+      const vp0 = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: Math.min(1600 / vp0.width, 1600 / vp0.height, 3) });
+      const c = document.createElement('canvas'); c.width = vp.width | 0; c.height = vp.height | 0;
+      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvasContext: x, viewport: vp }).promise;
+      el = rotCanvas(c, c.width, c.height, it.rot);
+    }
+    o.appendChild(el); o.classList.add('on');
+  })();
+}
+$('#zoomo').addEventListener('click', () => $('#zoomo').classList.remove('on'));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#zoomo').classList.remove('on'); });
 function removeItem(i){ mgItems.splice(i, 1); renderMerge(); }
 function moveItem(from, gap){ const [it] = mgItems.splice(from, 1); mgItems.splice(gap > from ? gap - 1 : gap, 0, it); renderMerge(); }
 function clearMerge(){ mgItems = []; sources.forEach(s => s.url && URL.revokeObjectURL(s.url)); sources.clear(); renderMerge(); }
@@ -645,9 +725,9 @@ $('#mgSave').addEventListener('click', async () => {
     const blob = new Blob([bytes], { type: 'application/pdf' });
     if (fh){ const w = await fh.createWritable(); await w.write(blob); await w.close(); }
     else dl(name, blob);
-    toast('PDF를 저장했어요');
-  } catch(err){ toast('PDF를 만드는 데 실패했어요'); }
-  busy(false);
+    busy(false);
+    showDone('PDF를 저장했어요', '', false);
+  } catch(err){ busy(false); toast('PDF를 만드는 데 실패했어요'); }
 });
 
 /* 연결 프로그램(.pdf 더블클릭)으로 열린 파일 받기 */
@@ -662,7 +742,8 @@ if ('launchQueue' in window){
 renderDirChip();
 
 /* 헤드리스 검증 훅 — 데이터 없음, UI와 같은 함수를 그대로 노출 */
-window.__tf = { convertPdfToPngs, addCvFiles, addMergeFiles, buildMergedPdf, moveItem, rotateItem, removeItem, clearMerge, setTab, items: () => mgItems, DPI, pdfjs: pdfjsLib };
+window.__tf = { convertPdfToPngs, imageToPdf, addCvFiles, addMergeFiles, buildMergedPdf, moveItem, rotateItem, removeItem, clearMerge, setTab, zoom: openZoom, items: () => mgItems, DPI, pdfjs: pdfjsLib,
+  _setDir: h => { savedDir = h; renderDirChip(); } };
 </script>
 <script src="install.js"></script>
 </body>
