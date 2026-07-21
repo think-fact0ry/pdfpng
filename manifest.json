@@ -1,0 +1,20 @@
+{
+  "name": "PDF PNG",
+  "short_name": "PDF PNG",
+  "description": "생각공작소 PDF 도구 — PNG 변환·병합",
+  "start_url": "/pdfpng/",
+  "scope": "/pdfpng/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#3a8a5f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-mask-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/apple-icon-180.png", "sizes": "180x180", "type": "image/png" }
+  ],
+  "file_handlers": [
+    { "action": "/pdfpng/", "accept": { "application/pdf": [".pdf"] } }
+  ]
+}

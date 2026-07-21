@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PDF PNG</title>
+<meta name="theme-color" content="#3a8a5f">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-icon-180.png">
+<style>
+@font-face{font-family:'Pretendard Variable';src:url('./vendor/PretendardVariable.woff2') format('woff2-variations');font-weight:45 920;font-display:swap}
+:root{
+/* TOKENS:START — docs/1 §3.1 정본(토큰동기.js) */
+  --g50:#f9fafb; --g100:#f2f4f6; --g200:#e5e8eb; --g300:#d1d6db;
+  --g400:#b0b8c1; --g500:#8b95a1; --g600:#6b7684; --g700:#4e5968;
+  --g800:#333d4b; --g900:#191f28;
+  --green50:#f8fbf9; --green100:#e9f8ee; --green200:#cef2db; --green300:#a7e7c0; --green400:#7bcb9c;
+  --green500:#57a77a; --green600:#3a8a5f; --green700:#166841; --green800:#01492a; --green900:#002614;
+  --green:var(--green600); --green-dark:var(--green700); --green-bg:var(--green100);
+  --red:#f04452; --ink-on-dark:#F9FBFA;
+  --dark:#525966; --danger:#D25357;
+  --danger-weak-bg:#fdecee; --danger-weak-fg:#c0392b;
+  --p-disabled:#b7e0c8;
+  --warn:#f5a623; --warn-weak-bg:#fef4e2; --warn-weak-fg:#c07f00;
+/* TOKENS:END */
+  --r-md:14px; --r-lg:20px;
+  --fs-title:17px; --fs-body:15px; --fs-sm:13.5px; --fs-caption:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;background:#fff;color:var(--g900);word-break:keep-all;-webkit-font-smoothing:antialiased}
+#app{max-width:1060px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 24px}
+svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ── 헤더: 세그먼트 ── */
+.hd{display:flex;justify-content:center;padding:22px 0 18px}
+.seg{display:flex;background:var(--g100);border-radius:14px;padding:4px;gap:2px}
+.seg button{border:0;background:none;font:inherit;font-size:var(--fs-title);font-weight:700;color:var(--g500);padding:11px 34px;border-radius:11px;cursor:pointer;letter-spacing:-.3px;transition:color .15s}
+.seg button.on{background:#fff;color:var(--green-dark);box-shadow:0 2px 8px rgba(0,0,0,.07)}
+
+.scr{display:none;flex-direction:column;flex:1;padding-bottom:34px}
+.scr.on{display:flex}
+.col{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;flex:1}
+
+/* ── 드롭존 ── */
+.zone{border:2px dashed var(--g300);border-radius:var(--r-lg);background:var(--g50);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:52px 24px;cursor:pointer;transition:border-color .15s,background .15s;text-align:center}
+.zone:hover{border-color:var(--g400)}
+.zone.drag{border-color:var(--green500);background:var(--green50)}
+.zone .zi{width:52px;height:52px;border-radius:16px;background:var(--green100);color:var(--green-dark);display:flex;align-items:center;justify-content:center}
+.zone .zi svg{width:26px;height:26px}
+.zone .zt{font-size:18px;font-weight:700;letter-spacing:-.4px}
+.zone .zs{font-size:var(--fs-sm);color:var(--g500);font-weight:500}
+
+/* ── 변환: 폴더 칩 + 파일 목록 ── */
+.chip{display:flex;align-items:center;gap:9px;background:var(--g50);border-radius:var(--r-md);padding:13px 16px;margin-bottom:14px;font-size:var(--fs-body)}
+.chip svg{width:19px;height:19px;color:var(--g500);flex:none}
+.chip .ct{flex:1;font-weight:600;color:var(--g700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip .ct b{color:var(--green-dark)}
+.chip button{border:0;background:none;font:inherit;font-size:var(--fs-sm);font-weight:700;color:var(--green600);cursor:pointer;padding:4px 2px;flex:none}
+.chip button:active{color:var(--green700)}
+.chip .cx{color:var(--g400);font-size:17px;padding:0 2px}
+.frows{margin-top:16px;display:flex;flex-direction:column;gap:8px}
+.frow{display:flex;align-items:center;gap:12px;background:var(--g50);border-radius:var(--r-md);padding:13px 16px}
+.frow .fi{width:34px;height:34px;border-radius:10px;background:#fff;color:var(--g500);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.frow .fi svg{width:18px;height:18px}
+.frow .fn{flex:1;min-width:0}
+.frow .fn .n{font-size:var(--fs-body);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.frow .fn .s{font-size:var(--fs-caption);color:var(--g500);font-weight:500;margin-top:2px}
+.frow .fn .s.ok{color:var(--green600)}
+.frow .fn .s.bad{color:var(--red)}
+.frow .rm{border:0;background:none;color:var(--g400);cursor:pointer;font-size:19px;padding:4px 6px;flex:none}
+.frow .rm:hover{color:var(--g600)}
+.foot{margin-top:auto;padding-top:22px}
+.btn{width:100%;border:0;border-radius:15px;padding:17px;font:inherit;font-size:var(--fs-title);font-weight:700;cursor:pointer;transition:transform .12s}
+.btn:active{transform:scale(.985)}
+.btn.fill{background:var(--green600);color:#fff}
+.btn.fill:active{background:var(--green700)}
+.btn.fill:disabled{background:var(--p-disabled);cursor:default;transform:none}
+.btn.weak{background:var(--green-bg);color:var(--green-dark)}
+
+/* ── 변환 완료 ── */
+.donebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:40px 0}
+.donebox .dc{width:74px;height:74px;border-radius:50%;background:var(--green100);color:var(--green600);display:flex;align-items:center;justify-content:center}
+.donebox .dc svg{width:36px;height:36px;stroke-width:2.6}
+.donebox .dt{font-size:22px;font-weight:800;letter-spacing:-.5px}
+.donebox .ds{font-size:var(--fs-body);color:var(--g500);font-weight:500;text-align:center;line-height:1.6}
+
+/* ── 병합: 페이지 그리드 ── */
+.mtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;min-height:30px}
+.mtop .cnt{font-size:var(--fs-body);font-weight:700;color:var(--g700)}
+.mtop .cnt b{color:var(--green-dark)}
+.mtop .clear{border:0;background:none;font:inherit;font-size:var(--fs-sm);font-weight:600;color:var(--g500);cursor:pointer;padding:4px}
+.mtop .clear:hover{color:var(--g700)}
+.grid{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;align-content:start}
+.card{background:var(--g50);border-radius:var(--r-md);padding:8px 8px 9px;position:relative;cursor:grab;user-select:none;touch-action:none}
+.card.ghost{opacity:.25}
+.card .th{height:186px;display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:9px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card .th canvas,.card .th img{max-width:100%;max-height:100%;display:block}
+.card .lb{display:flex;align-items:center;gap:6px;margin-top:8px;padding:0 3px}
+.card .lb .dot{width:7px;height:7px;border-radius:50%;flex:none}
+.card .lb .t{font-size:var(--fs-caption);font-weight:600;color:var(--g600);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .ops{position:absolute;top:13px;right:13px;display:none;gap:5px}
+.card:hover .ops{display:flex}
+.card .ops button{width:29px;height:29px;border-radius:9px;border:0;background:rgba(25,31,40,.62);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.card .ops button:hover{background:rgba(25,31,40,.82)}
+.card .ops svg{width:15px;height:15px}
+.addcard{border:2px dashed var(--g300);border-radius:var(--r-md);min-height:230px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--g500);cursor:pointer;background:none;font:inherit;transition:border-color .15s,background .15s}
+.addcard:hover,.addcard.drag{border-color:var(--green500);background:var(--green50);color:var(--green-dark)}
+.addcard svg{width:24px;height:24px}
+.addcard span{font-size:var(--fs-sm);font-weight:700}
+.insbar{position:absolute;width:4px;border-radius:99px;background:var(--green500);pointer-events:none;display:none;z-index:5}
+.fly{position:fixed;z-index:800;pointer-events:none;transform:translate(-50%,-50%) scale(1.04);box-shadow:0 12px 34px rgba(0,0,0,.22);opacity:.95}
+.mfoot{display:flex;gap:10px;margin-top:22px}
+.mfoot .btn.weak{width:auto;padding:17px 26px;flex:none}
+
+/* ── 오버레이·토스트 ── */
+.busy{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:850;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
+.busy.on{display:flex}
+.spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--green100);border-top-color:var(--green500);animation:sp 1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.busy .bt{font-size:var(--fs-body);font-weight:700;color:var(--g700)}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--g800);color:#fff;font-size:var(--fs-sm);font-weight:600;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:900;max-width:88vw;text-align:center}
+.toast.on{opacity:1}
+input[type=file]{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="hd">
+    <div class="seg">
+      <button type="button" class="on" data-t="convert">변환하기</button>
+      <button type="button" data-t="merge">병합하기</button>
+    </div>
+  </div>
+
+  <!-- 변환하기: PDF → PNG -->
+  <section class="scr on" id="scrConvert">
+    <div class="col">
+      <div class="chip" id="dirChip">
+        <svg class="li" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+        <div class="ct" id="dirName">폴더를 고르면 PNG가 바로 거기에 저장돼요</div>
+        <button type="button" id="dirPick">폴더 고르기</button>
+        <button type="button" class="cx" id="dirClear" style="display:none" aria-label="끌어온 폴더 해제">×</button>
+      </div>
+      <div id="cvMain">
+        <div class="zone" id="cvZone">
+          <div class="zi"><svg class="li" viewBox="0 0 24 24"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8zM12 11v6M9.5 14.5 12 17l2.5-2.5"/></svg></div>
+          <div class="zt">PDF를 끌어다 놓으세요</div>
+          <div class="zs">클릭해서 골라도 돼요 · 폴더를 놓으면 안의 PDF를 전부 변환해요</div>
+        </div>
+        <div class="frows" id="cvRows"></div>
+        <div class="foot"><button type="button" class="btn fill" id="cvGo" disabled>변환하기</button></div>
+      </div>
+      <div id="cvDone" class="donebox" style="display:none">
+        <div class="dc"><svg class="li" viewBox="0 0 24 24"><path d="M4.5 12.5 10 18 19.5 7"/></svg></div>
+        <div class="dt" id="cvDoneT"></div>
+        <div class="ds" id="cvDoneS"></div>
+        <div class="foot" style="width:100%;max-width:340px"><button type="button" class="btn weak" id="cvAgain">확인</button></div>
+      </div>
+    </div>
+    <input type="file" id="cvInput" accept=".pdf,application/pdf" multiple>
+  </section>
+
+  <!-- 병합하기: PDF·이미지 → 한 PDF -->
+  <section class="scr" id="scrMerge">
+    <div id="mgEmpty">
+      <div class="col">
+        <div class="zone" id="mgZone" style="padding:76px 24px">
+          <div class="zi"><svg class="li" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8-18h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3M12 8v8M8 12h8"/></svg></div>
+          <div class="zt">PDF나 이미지를 끌어다 놓으세요</div>
+          <div class="zs">놓은 순서대로 한 PDF가 돼요 · 페이지 사이에 놓으면 그 자리에 들어가요</div>
+        </div>
+      </div>
+    </div>
+    <div id="mgMain" style="display:none">
+      <div class="mtop">
+        <div class="cnt" id="mgCnt"></div>
+        <button type="button" class="clear" id="mgClear">모두 지우기</button>
+      </div>
+      <div class="grid" id="mgGrid"></div>
+      <div class="mfoot">
+        <button type="button" class="btn weak" id="mgClear2">모두 지우기</button>
+        <button type="button" class="btn fill" id="mgSave">PDF로 저장</button>
+      </div>
+    </div>
+    <input type="file" id="mgInput" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple>
+  </section>
+</div>
+
+<div class="busy" id="busy"><div class="spin"></div><div class="bt" id="busyT">PDF를 만들고 있어요</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="./vendor/pdf-lib.min.js"></script>
+<script type="module">
+import * as pdfjsLib from './vendor/pdf.min.mjs';
+pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
+const { PDFDocument, degrees } = window.PDFLib;
+
+const DPI = 200;                      // 기존 .bat(-density 200)과 동일 — 조정은 이 상수만
+const A4 = [595.28, 841.89];          // 이미지 페이지 규격(세로 A4 맞춤·비율 유지)
+const pngName = (base, i, n) => n === 1 ? `${base}.png` : `${base}-이미지-${i}.png`; // 기존 SmallPDF 산출 파일명 패턴(0부터)
+const baseName = f => f.replace(/\.[^.]+$/, '');
+const $ = s => document.querySelector(s);
+const hasFS = 'showDirectoryPicker' in window;
+
+/* ── 공용 ── */
+let toastTimer;
+function toast(msg){ const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove('on'), 2600); }
+function busy(on, msg){ $('#busyT').textContent = msg || 'PDF를 만들고 있어요'; $('#busy').classList.toggle('on', !!on); }
+function dl(name, blob){ const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
+
+const idb = {
+  open(){ return new Promise((res, rej) => { const r = indexedDB.open('tf-pdf', 1); r.onupgradeneeded = () => r.result.createObjectStore('kv'); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
+  async get(k){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('kv').objectStore('kv').get(k); t.onsuccess = () => res(t.result); t.onerror = () => rej(t.error); }); },
+  async set(k, v){ const db = await this.open(); return new Promise((res, rej) => { const t = db.transaction('kv', 'readwrite').objectStore('kv').put(v, k); t.onsuccess = () => res(); t.onerror = () => rej(t.error); }); }
+};
+
+async function ensureRW(dir){
+  let p = await dir.queryPermission({ mode: 'readwrite' });
+  if (p !== 'granted') p = await dir.requestPermission({ mode: 'readwrite' });
+  return p === 'granted';
+}
+
+/* drop 이벤트에서 핸들은 await 전에 동기로 걷어야 한다(dataTransfer가 무효화됨) */
+function collectDrop(e){
+  const items = [...e.dataTransfer.items];
+  const plain = [...e.dataTransfer.files];
+  const proms = items.filter(it => it.kind === 'file')
+    .map(it => it.getAsFileSystemHandle ? it.getAsFileSystemHandle().catch(() => null) : Promise.resolve(null));
+  return { proms, plain };
+}
+async function pdfsFromDir(dirH){
+  const out = [];
+  for await (const h of dirH.values()) if (h.kind === 'file' && /\.pdf$/i.test(h.name)) out.push(await h.getFile());
+  return out.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+}
+
+/* ── 탭 ── */
+function setTab(t){
+  document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  $('#scrConvert').classList.toggle('on', t === 'convert');
+  $('#scrMerge').classList.toggle('on', t === 'merge');
+}
+document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
+
+/* ═══════════ 변환하기 ═══════════ */
+let savedDir = null, dropDir = null;   // dropDir = 폴더째 끌어온 경우 그 폴더에 저장(우선)
+let cvFiles = [];                      // {file, pages, status:'ready'|'work'|'ok'|'bad', done, msg}
+
+function renderDirChip(){
+  const n = $('#dirName'), clear = $('#dirClear');
+  if (dropDir){ n.innerHTML = `끌어온 폴더 <b></b>에 저장해요`; n.querySelector('b').textContent = `'${dropDir.name}'`; clear.style.display = ''; }
+  else if (savedDir){ n.innerHTML = `저장 폴더 <b></b>`; n.querySelector('b').textContent = savedDir.name; clear.style.display = 'none'; }
+  else { n.textContent = '폴더를 고르면 PNG가 바로 거기에 저장돼요'; clear.style.display = 'none'; }
+  if (!hasFS){ n.textContent = 'PNG는 다운로드 폴더로 저장돼요'; $('#dirPick').style.display = 'none'; }
+}
+$('#dirPick').addEventListener('click', async () => {
+  if (!hasFS) return;
+  try { savedDir = await showDirectoryPicker({ mode: 'readwrite' }); dropDir = null; await idb.set('outDir', savedDir); renderDirChip(); } catch(e){}
+});
+$('#dirClear').addEventListener('click', () => { dropDir = null; renderDirChip(); });
+idb.get('outDir').then(h => { if (h) { savedDir = h; renderDirChip(); } }).catch(() => {});
+
+function renderCvRows(){
+  const box = $('#cvRows'); box.innerHTML = '';
+  cvFiles.forEach((f, i) => {
+    const row = document.createElement('div'); row.className = 'frow';
+    const st = f.status === 'work' ? `<div class="s ok">변환 중 · ${f.done}/${f.pages}장</div>`
+      : f.status === 'ok' ? `<div class="s ok">저장했어요</div>`
+      : f.status === 'bad' ? `<div class="s bad">${f.msg}</div>`
+      : `<div class="s">${f.pages ? f.pages + '장' : ''}</div>`;
+    row.innerHTML = `<div class="fi"><svg class="li" viewBox="0 0 24 24"><path d="M14 3v5h5M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/></svg></div>
+      <div class="fn"><div class="n"></div>${st}</div><button type="button" class="rm" aria-label="빼기">×</button>`;
+    row.querySelector('.n').textContent = f.file.name;
+    row.querySelector('.rm').addEventListener('click', () => { cvFiles.splice(i, 1); renderCvRows(); });
+    box.appendChild(row);
+  });
+  $('#cvGo').disabled = !cvFiles.length;
+}
+
+async function addCvFiles(files){
+  const pdfs = files.filter(f => /\.pdf$/i.test(f.name));
+  const skipped = files.length - pdfs.length;
+  if (skipped) toast(`PDF만 변환할 수 있어요 — ${skipped}개는 뺐어요 (이미지는 병합하기에서 써요)`);
+  for (const file of pdfs){
+    const entry = { file, pages: null, status: 'ready', done: 0, msg: '' };
+    cvFiles.push(entry); renderCvRows();
+    try {
+      const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      entry.pages = doc.numPages; doc.destroy();
+    } catch (err) {
+      entry.status = 'bad';
+      entry.msg = err && err.name === 'PasswordException' ? '암호가 걸린 PDF예요' : 'PDF를 열 수 없어요';
+    }
+    renderCvRows();
+  }
+}
+
+const cvZone = $('#cvZone');
+cvZone.addEventListener('click', () => $('#cvInput').click());
+$('#cvInput').addEventListener('change', e => { addCvFiles([...e.target.files]); e.target.value = ''; });
+['dragover', 'dragenter'].forEach(ev => cvZone.addEventListener(ev, e => { e.preventDefault(); cvZone.classList.add('drag'); }));
+cvZone.addEventListener('dragleave', () => cvZone.classList.remove('drag'));
+cvZone.addEventListener('drop', e => {
+  e.preventDefault(); cvZone.classList.remove('drag');
+  const { proms, plain } = collectDrop(e);
+  (async () => {
+    const handles = await Promise.all(proms);
+    const files = []; let usedHandles = false;
+    for (const h of handles){
+      if (!h) continue; usedHandles = true;
+      if (h.kind === 'directory'){
+        const inner = await pdfsFromDir(h);
+        if (inner.length){ dropDir = h; renderDirChip(); files.push(...inner); }
+        else toast('폴더에 PDF가 없어요');
+      } else files.push(await h.getFile());
+    }
+    if (!usedHandles) files.push(...plain);
+    if (files.length) addCvFiles(files);
+  })();
+});
+
+/* 변환 파이프라인 — 테스트 훅에서도 직접 호출 */
+async function convertPdfToPngs(file, onProgress){
+  const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const n = doc.numPages, base = baseName(file.name), out = [];
+  for (let i = 1; i <= n; i++){
+    const page = await doc.getPage(i);
+    const vp = page.getViewport({ scale: DPI / 72 });
+    const c = document.createElement('canvas');
+    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    out.push({ name: pngName(base, i - 1, n), blob });
+    if (onProgress) onProgress(i, n);
+  }
+  doc.destroy();
+  return out;
+}
+
+$('#cvGo').addEventListener('click', async () => {
+  let dir = dropDir || savedDir;
+  if (hasFS){
+    if (!dir){
+      try { dir = savedDir = await showDirectoryPicker({ mode: 'readwrite' }); await idb.set('outDir', dir); renderDirChip(); }
+      catch(e){ return; }
+    }
+    if (!(await ensureRW(dir))){ toast('폴더 권한을 허용하면 저장할 수 있어요'); return; }
+  }
+  $('#cvGo').disabled = true;
+  let saved = 0, over = 0, failed = 0;
+  for (const f of cvFiles){
+    if (f.status === 'bad'){ failed++; continue; }
+    f.status = 'work'; f.done = 0; renderCvRows();
+    try {
+      const items = await convertPdfToPngs(f.file, (i) => { f.done = i; renderCvRows(); });
+      for (const it of items){
+        if (dir){
+          let exists = false; try { await dir.getFileHandle(it.name); exists = true; } catch(e){}
+          const fh = await dir.getFileHandle(it.name, { create: true });
+          const w = await fh.createWritable(); await w.write(it.blob); await w.close();
+          if (exists) over++;
+        } else dl(it.name, it.blob);
+        saved++;
+      }
+      f.status = 'ok';
+    } catch (err) { f.status = 'bad'; f.msg = 'PDF를 열 수 없어요'; failed++; }
+    renderCvRows();
+  }
+  $('#cvMain').style.display = 'none';
+  $('#cvDone').style.display = '';
+  $('#cvDoneT').textContent = saved ? `PNG ${saved}장을 저장했어요` : '변환하지 못했어요';
+  $('#cvDoneS').textContent = [
+    over ? `같은 이름 ${over}장은 덮어썼어요` : '',
+    failed ? `${failed}개 파일은 열 수 없었어요` : '',
+    !dir && hasFS === false ? '다운로드 폴더를 확인해 주세요' : ''
+  ].filter(Boolean).join(' · ');
+});
+$('#cvAgain').addEventListener('click', () => {
+  cvFiles = []; renderCvRows();
+  $('#cvDone').style.display = 'none'; $('#cvMain').style.display = '';
+});
+
+/* ═══════════ 병합하기 ═══════════ */
+let seq = 0;
+const sources = new Map();  // srcId → {name, bytes, type:'pdf'|'png'|'jpg', url?, pjs?}
+let mgItems = [];           // {id, kind:'pdfPage'|'image', srcId, pageIndex, rot, thumb?, el?}
+
+function srcColor(id){ return `hsl(${(id * 67) % 360} 42% 52%)`; }
+function getPjs(src){
+  if (!src.pjs) src.pjs = pdfjsLib.getDocument({ data: src.bytes.slice(0) }).promise; // pdf.js가 버퍼를 가져가므로 사본
+  return src.pjs;
+}
+
+async function addMergeFiles(files, at){
+  const ok = files.filter(f => /\.(pdf|png|jpe?g)$/i.test(f.name));
+  if (files.length - ok.length) toast(`PDF·PNG·JPG만 넣을 수 있어요 — ${files.length - ok.length}개는 뺐어요`);
+  const fresh = [];
+  for (const file of ok){
+    const bytes = await file.arrayBuffer();
+    const id = ++seq;
+    if (/\.pdf$/i.test(file.name)){
+      const src = { name: file.name, bytes, type: 'pdf' };
+      try {
+        const doc = await getPjs(src);
+        sources.set(id, src);
+        for (let p = 0; p < doc.numPages; p++) fresh.push({ id: ++seq, kind: 'pdfPage', srcId: id, pageIndex: p, rot: 0 });
+      } catch(err){ toast(`'${file.name}'은 열 수 없어요`); }
+    } else {
+      const type = /\.png$/i.test(file.name) ? 'png' : 'jpg';
+      sources.set(id, { name: file.name, bytes, type, url: URL.createObjectURL(new Blob([bytes])) });
+      fresh.push({ id: ++seq, kind: 'image', srcId: id, pageIndex: 0, rot: 0 });
+    }
+  }
+  if (!fresh.length) return;
+  const idx = (at === undefined || at === null) ? mgItems.length : at;
+  mgItems.splice(idx, 0, ...fresh);
+  renderMerge();
+}
+
+/* 썸네일 — 보이는 카드만 렌더(캐시), 회전은 CSS transform */
+const io = new IntersectionObserver(es => es.forEach(en => { if (en.isIntersecting){ const it = mgItems.find(m => m.el === en.target); if (it) renderThumb(it); } }), { rootMargin: '200px' });
+async function renderThumb(it){
+  if (it.thumb || it.rendering) return; it.rendering = true;
+  try {
+    const src = sources.get(it.srcId);
+    if (it.kind === 'image'){ const img = new Image(); img.src = src.url; await img.decode(); it.thumb = img; }
+    else {
+      const doc = await getPjs(src);
+      const page = await doc.getPage(it.pageIndex + 1);
+      const vp0 = page.getViewport({ scale: 1 });
+      const vp = page.getViewport({ scale: 300 / vp0.width });
+      const c = document.createElement('canvas'); c.width = vp.width | 0; c.height = vp.height | 0;
+      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+      await page.render({ canvasContext: ctx, viewport: vp }).promise;
+      it.thumb = c;
+    }
+    if (it.el){ const th = it.el.querySelector('.th'); th.innerHTML = ''; th.appendChild(it.thumb); applyRot(it); }
+  } finally { it.rendering = false; }
+}
+function applyRot(it){
+  if (!it.thumb || !it.el) return;
+  const th = it.el.querySelector('.th'), box = th.getBoundingClientRect();
+  const cw = it.thumb.width || it.thumb.naturalWidth, ch = it.thumb.height || it.thumb.naturalHeight;
+  const s0 = Math.min(box.width / cw, box.height / ch), dw = cw * s0, dh = ch * s0;
+  const fit = (it.rot % 180) ? Math.min(box.width / dh, box.height / dw) : 1;
+  it.thumb.style.transform = `rotate(${it.rot}deg) scale(${fit})`;
+}
+
+function renderMerge(){
+  const has = mgItems.length > 0;
+  $('#mgEmpty').style.display = has ? 'none' : '';
+  $('#mgMain').style.display = has ? '' : 'none';
+  if (!has) return;
+  $('#mgCnt').innerHTML = `<b>${mgItems.length}</b>페이지`;
+  const grid = $('#mgGrid'); grid.innerHTML = '';
+  mgItems.forEach((it, i) => {
+    const src = sources.get(it.srcId);
+    const card = document.createElement('div'); card.className = 'card'; card.dataset.i = i;
+    card.innerHTML = `<div class="th"></div>
+      <div class="lb"><span class="dot"></span><span class="t"></span></div>
+      <div class="ops">
+        <button type="button" data-op="rot" title="회전"><svg class="li" viewBox="0 0 24 24"><path d="M20 8a8 8 0 1 0 2 6M20 3v5h-5"/></svg></button>
+        <button type="button" data-op="del" title="빼기"><svg class="li" viewBox="0 0 24 24"><path d="M5 5l14 14M19 5 5 19"/></svg></button>
+      </div>`;
+    card.querySelector('.dot').style.background = srcColor(it.srcId);
+    card.querySelector('.t').textContent = it.kind === 'pdfPage' ? `${baseName(src.name)} · ${it.pageIndex + 1}` : baseName(src.name);
+    card.querySelector('.t').title = src.name;
+    if (it.thumb){ card.querySelector('.th').appendChild(it.thumb); }
+    card.querySelector('[data-op=rot]').addEventListener('click', e => { e.stopPropagation(); rotateItem(i); });
+    card.querySelector('[data-op=del]').addEventListener('click', e => { e.stopPropagation(); removeItem(i); });
+    grid.appendChild(card);
+    it.el = card;
+    if (!it.thumb) io.observe(card); else requestAnimationFrame(() => applyRot(it));
+  });
+  const add = document.createElement('button'); add.type = 'button'; add.className = 'addcard'; add.id = 'mgAdd';
+  add.innerHTML = `<svg class="li" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>추가하기</span>`;
+  add.addEventListener('click', () => $('#mgInput').click());
+  grid.appendChild(add);
+  const bar = document.createElement('div'); bar.className = 'insbar'; bar.id = 'insBar';
+  grid.appendChild(bar);
+}
+function rotateItem(i){ const it = mgItems[i]; it.rot = (it.rot + 90) % 360; applyRot(it); }
+function removeItem(i){ mgItems.splice(i, 1); renderMerge(); }
+function moveItem(from, gap){ const [it] = mgItems.splice(from, 1); mgItems.splice(gap > from ? gap - 1 : gap, 0, it); renderMerge(); }
+function clearMerge(){ mgItems = []; sources.forEach(s => s.url && URL.revokeObjectURL(s.url)); sources.clear(); renderMerge(); }
+$('#mgClear').addEventListener('click', clearMerge);
+$('#mgClear2').addEventListener('click', clearMerge);
+$('#mgInput').addEventListener('change', e => { addMergeFiles([...e.target.files]); e.target.value = ''; });
+
+/* 삽입 위치: 그리드 좌표 → gap 인덱스(0=맨앞 … n=맨뒤) */
+function gapIndex(px, py){
+  const cards = [...$('#mgGrid').querySelectorAll('.card:not(.ghost)')];
+  for (const c of cards){
+    const r = c.getBoundingClientRect();
+    if (py < r.top) return +c.dataset.i;
+    if (py <= r.bottom && px < r.left + r.width / 2) return +c.dataset.i;
+    if (py <= r.bottom && px <= r.right) return +c.dataset.i + 1;
+  }
+  return mgItems.length;
+}
+function showInsBar(gap){
+  const bar = $('#insBar'); if (!bar) return;
+  const grid = $('#mgGrid'), gr = grid.getBoundingClientRect();
+  const cards = [...grid.querySelectorAll('.card')];
+  if (!cards.length){ bar.style.display = 'none'; return; }
+  const ref = gap < cards.length ? cards[gap].getBoundingClientRect() : cards[cards.length - 1].getBoundingClientRect();
+  const left = gap < cards.length ? ref.left - gr.left - 9 : ref.right - gr.left + 5;
+  bar.style.display = 'block';
+  bar.style.left = left + 'px';
+  bar.style.top = (ref.top - gr.top) + 'px';
+  bar.style.height = ref.height + 'px';
+}
+function hideInsBar(){ const b = $('#insBar'); if (b) b.style.display = 'none'; }
+
+/* 외부 파일 드롭(빈 화면·그리드 공통) */
+function wireFileDrop(el, useGap){
+  ['dragover', 'dragenter'].forEach(ev => el.addEventListener(ev, e => {
+    if (![...e.dataTransfer.types].includes('Files')) return;
+    e.preventDefault();
+    if (el.id === 'mgZone') el.classList.add('drag');
+    if (useGap) showInsBar(gapIndex(e.clientX, e.clientY));
+  }));
+  el.addEventListener('dragleave', e => { if (el.id === 'mgZone') el.classList.remove('drag'); if (useGap && !el.contains(e.relatedTarget)) hideInsBar(); });
+  el.addEventListener('drop', e => {
+    e.preventDefault(); el.classList.remove('drag'); hideInsBar();
+    const at = useGap ? gapIndex(e.clientX, e.clientY) : undefined;
+    const { proms, plain } = collectDrop(e);
+    (async () => {
+      const handles = await Promise.all(proms);
+      const files = []; let used = false;
+      for (const h of handles){
+        if (!h) continue; used = true;
+        if (h.kind === 'directory'){ for await (const fh of h.values()) if (fh.kind === 'file' && /\.(pdf|png|jpe?g)$/i.test(fh.name)) files.push(await fh.getFile()); }
+        else files.push(await h.getFile());
+      }
+      if (!used) files.push(...plain);
+      if (files.length) addMergeFiles(files, at);
+    })();
+  });
+}
+wireFileDrop($('#mgZone'), false);
+$('#mgZone').addEventListener('click', () => $('#mgInput').click());
+wireFileDrop($('#mgGrid'), true);
+
+/* 카드 드래그 재배열(pointer) */
+(function(){
+  const grid = $('#mgGrid');
+  let from = -1, fly = null, gap = -1, sx = 0, sy = 0, active = false;
+  grid.addEventListener('pointerdown', e => {
+    const card = e.target.closest('.card');
+    if (!card || e.target.closest('.ops')) return;
+    from = +card.dataset.i; sx = e.clientX; sy = e.clientY; active = false;
+    grid.setPointerCapture(e.pointerId);
+  });
+  grid.addEventListener('pointermove', e => {
+    if (from < 0) return;
+    if (!active){
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) < 6) return;
+      active = true;
+      const card = grid.querySelector(`.card[data-i="${from}"]`);
+      const r = card.getBoundingClientRect();
+      fly = card.cloneNode(true); fly.classList.add('fly');
+      fly.style.width = r.width + 'px'; fly.querySelector('.ops').remove();
+      const th = mgItems[from].thumb;
+      if (th){
+        const fth = fly.querySelector('.th'); fth.innerHTML = '';
+        let copy;
+        if (th.tagName === 'CANVAS'){ // 캔버스 cloneNode는 픽셀이 빈 채 복제됨 — 다시 그린다
+          copy = document.createElement('canvas'); copy.width = th.width; copy.height = th.height;
+          copy.getContext('2d').drawImage(th, 0, 0);
+        } else copy = th.cloneNode(true);
+        copy.style.transform = th.style.transform;
+        fth.appendChild(copy);
+      }
+      document.body.appendChild(fly);
+      card.classList.add('ghost');
+    }
+    fly.style.left = e.clientX + 'px'; fly.style.top = e.clientY + 'px';
+    gap = gapIndex(e.clientX, e.clientY);
+    showInsBar(gap);
+  });
+  const end = e => {
+    if (from < 0) return;
+    const card = grid.querySelector(`.card[data-i="${from}"]`);
+    if (card) card.classList.remove('ghost');
+    if (fly){ fly.remove(); fly = null; }
+    hideInsBar();
+    if (active && gap >= 0 && gap !== from && gap !== from + 1) moveItem(from, gap);
+    from = -1; gap = -1; active = false;
+  };
+  grid.addEventListener('pointerup', end);
+  grid.addEventListener('pointercancel', end);
+})();
+
+/* 병합 빌드 — 테스트 훅에서도 직접 호출 */
+async function rotateImageBytes(src, rot){
+  const bmp = await createImageBitmap(new Blob([src.bytes]));
+  const sw = bmp.width, sh = bmp.height;
+  const [w, h] = rot % 180 ? [sh, sw] : [sw, sh];
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.translate(w / 2, h / 2); ctx.rotate(rot * Math.PI / 180); ctx.drawImage(bmp, -sw / 2, -sh / 2);
+  const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+  return await blob.arrayBuffer();
+}
+async function buildMergedPdf(){
+  const out = await PDFDocument.create();
+  const loaded = new Map();
+  for (const it of mgItems){
+    const src = sources.get(it.srcId);
+    if (it.kind === 'pdfPage'){
+      let sd = loaded.get(it.srcId);
+      if (!sd){ sd = await PDFDocument.load(src.bytes, { ignoreEncryption: true }); loaded.set(it.srcId, sd); }
+      const [p] = await out.copyPages(sd, [it.pageIndex]);
+      if (it.rot) p.setRotation(degrees(((p.getRotation().angle || 0) + it.rot) % 360));
+      out.addPage(p);
+    } else {
+      let bytes = src.bytes, isPng = src.type === 'png';
+      if (it.rot){ bytes = await rotateImageBytes(src, it.rot); isPng = true; }
+      const img = isPng ? await out.embedPng(bytes) : await out.embedJpg(bytes);
+      const s = Math.min(A4[0] / img.width, A4[1] / img.height);
+      const w = img.width * s, h = img.height * s;
+      const page = out.addPage([A4[0], A4[1]]);
+      page.drawImage(img, { x: (A4[0] - w) / 2, y: (A4[1] - h) / 2, width: w, height: h });
+    }
+  }
+  return await out.save();
+}
+$('#mgSave').addEventListener('click', async () => {
+  if (!mgItems.length) return;
+  const first = sources.get(mgItems[0].srcId);
+  const name = `${baseName(first.name)}-병합됨.pdf`;
+  let fh = null;
+  if ('showSaveFilePicker' in window){
+    try { fh = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }] }); }
+    catch(e){ return; }   // 저장 창을 닫음 = 그대로 둠
+  }
+  busy(true);
+  try {
+    const bytes = await buildMergedPdf();
+    const blob = new Blob([bytes], { type: 'application/pdf' });
+    if (fh){ const w = await fh.createWritable(); await w.write(blob); await w.close(); }
+    else dl(name, blob);
+    toast('PDF를 저장했어요');
+  } catch(err){ toast('PDF를 만드는 데 실패했어요'); }
+  busy(false);
+});
+
+/* 연결 프로그램(.pdf 더블클릭)으로 열린 파일 받기 */
+if ('launchQueue' in window){
+  launchQueue.setConsumer(async p => {
+    if (!p.files || !p.files.length) return;
+    const files = await Promise.all(p.files.map(h => h.getFile()));
+    setTab('convert'); addCvFiles(files);
+  });
+}
+
+renderDirChip();
+
+/* 헤드리스 검증 훅 — 데이터 없음, UI와 같은 함수를 그대로 노출 */
+window.__tf = { convertPdfToPngs, addCvFiles, addMergeFiles, buildMergedPdf, moveItem, rotateItem, removeItem, clearMerge, setTab, items: () => mgItems, DPI, pdfjs: pdfjsLib };
+</script>
+<script src="install.js"></script>
+</body>
+</html>
