@@ -47,8 +47,8 @@
   function openGuide(){
     steps.innerHTML = [
       '오른쪽 위 <b>⋮</b>(점 3개)를 눌러요',
-      "<b>'앱'</b> → <b>'이 사이트를 앱으로 설치'</b>를 눌러요",
-      "설치 창에서 <b>'작업 표시줄에 고정'</b>을 체크하면 끝이에요"
+      "크롬은 <b>'저장 및 공유'</b> → <b>'앱으로 설치'</b>, 엣지는 <b>'앱'</b> → <b>'이 사이트를 앱으로 설치'</b>",
+      "실행된 앱의 작업표시줄 아이콘을 우클릭해 <b>'작업 표시줄에 고정'</b>을 눌러요"
     ].map(function(s){ return '<li>'+s+'</li>'; }).join('');
     dim.classList.add('on'); card.classList.add('on');
   }

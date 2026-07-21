@@ -71,6 +71,8 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .frow .fn .s.bad{color:var(--red)}
 .frow .rm{border:0;background:none;color:var(--g400);cursor:pointer;font-size:19px;padding:4px 6px;flex:none}
 .frow .rm:hover{color:var(--g600)}
+.pbar{height:4px;border-radius:99px;background:var(--g200);margin-top:7px;overflow:hidden}
+.pbar i{display:block;height:100%;background:var(--green500);border-radius:99px;transition:width .2s}
 .foot{margin-top:auto;padding-top:22px}
 .btn{width:100%;border:0;border-radius:15px;padding:17px;font:inherit;font-size:var(--fs-title);font-weight:700;cursor:pointer;transition:transform .12s}
 .btn:active{transform:scale(.985)}
@@ -102,8 +104,6 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .mtop{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;min-height:30px}
 .mtop .cnt{font-size:var(--fs-body);font-weight:700;color:var(--g700)}
 .mtop .cnt b{color:var(--green-dark)}
-.mtop .clear{border:0;background:none;font:inherit;font-size:var(--fs-sm);font-weight:600;color:var(--g500);cursor:pointer;padding:4px}
-.mtop .clear:hover{color:var(--g700)}
 .grid{position:relative;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px;align-content:start}
 .card{background:var(--g50);border-radius:var(--r-md);padding:8px 8px 9px;position:relative;cursor:grab;user-select:none;touch-action:none}
 .card.ghost{opacity:.25}
@@ -123,8 +123,17 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .addcard span{font-size:var(--fs-sm);font-weight:700}
 .insbar{position:absolute;width:4px;border-radius:99px;background:var(--green500);pointer-events:none;display:none;z-index:5}
 .fly{position:fixed;z-index:800;pointer-events:none;transform:translate(-50%,-50%) scale(1.04);box-shadow:0 12px 34px rgba(0,0,0,.22);opacity:.95}
-.mfoot{display:flex;gap:10px;margin-top:22px}
+.mfoot{display:flex;gap:10px;margin-top:44px}
 .mfoot .btn.weak{width:auto;padding:17px 26px;flex:none}
+/* 모두 지우기 확인 — 바텀 논모달 시트(§4.4: 좌 닫기·우 파괴 빨강, dim 없음) */
+.csheet{position:fixed;left:50%;transform:translateX(-50%) translateY(130%);width:min(420px,calc(100% - 16px));bottom:8px;background:#fff;border-radius:24px;padding:22px 22px 18px;box-shadow:0 -6px 30px rgba(25,31,40,.18);transition:transform .28s cubic-bezier(.2,1,.3,1);z-index:840}
+.csheet.on{transform:translateX(-50%) translateY(0)}
+.csheet .ct2{font-size:17px;font-weight:800;letter-spacing:-.4px;margin-bottom:14px}
+.csheet .cbtns{display:flex;gap:8px}
+.csheet .cbtns button{flex:1;border:0;border-radius:13px;padding:15px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;transition:transform .12s}
+.csheet .cbtns button:active{transform:scale(.97)}
+.csheet .cx2{background:var(--g100);color:var(--g700)}
+.csheet .cgo{background:var(--danger);color:#fff}
 
 /* ── 오버레이·토스트 ── */
 .busy{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:850;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -182,7 +191,6 @@ input[type=file]{display:none}
     <div id="mgMain" style="display:none">
       <div class="mtop">
         <div class="cnt" id="mgCnt"></div>
-        <button type="button" class="clear" id="mgClear">모두 지우기</button>
       </div>
       <div class="grid" id="mgGrid"></div>
       <div class="mfoot">
@@ -202,6 +210,13 @@ input[type=file]{display:none}
   <button type="button" class="btn weak" id="doneBtn" style="display:none;max-width:340px">확인</button>
 </div>
 <div class="zoomo" id="zoomo"></div>
+<div class="csheet" id="clearSheet">
+  <div class="ct2">페이지를 모두 지울까요?</div>
+  <div class="cbtns">
+    <button type="button" class="cx2" id="csClose">닫기</button>
+    <button type="button" class="cgo" id="csGo">지우기</button>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script src="./vendor/pdf-lib.min.js"></script>
@@ -280,7 +295,8 @@ function renderCvRows(){
   cvFiles.forEach((f, i) => {
     const row = document.createElement('div'); row.className = 'frow';
     const readyTxt = f.kind === 'img' ? '이미지 → PDF' : (f.pages ? `${f.pages}장 → PNG` : '');
-    const st = f.status === 'work' ? `<div class="s ok">변환 중${f.kind === 'pdf' ? ` · ${f.done}/${f.pages}장` : ''}</div>`
+    const pct = f.pages ? Math.round(f.done / f.pages * 100) : 0;
+    const st = f.status === 'work' ? `<div class="s ok">변환 중${f.kind === 'pdf' ? ` · ${f.done}/${f.pages}장` : ''}</div>${f.kind === 'pdf' ? `<div class="pbar"><i style="width:${pct}%"></i></div>` : ''}`
       : f.status === 'ok' ? `<div class="s ok">저장했어요</div>`
       : f.status === 'bad' ? `<div class="s bad">${f.msg}</div>`
       : `<div class="s">${readyTxt}</div>`;
@@ -328,26 +344,21 @@ async function imageToPdf(file){
 const cvZone = $('#cvZone');
 cvZone.addEventListener('click', () => $('#cvInput').click());
 $('#cvInput').addEventListener('change', e => { addCvFiles([...e.target.files]); e.target.value = ''; });
-['dragover', 'dragenter'].forEach(ev => cvZone.addEventListener(ev, e => { e.preventDefault(); cvZone.classList.add('drag'); }));
-cvZone.addEventListener('dragleave', () => cvZone.classList.remove('drag'));
-cvZone.addEventListener('drop', e => {
-  e.preventDefault(); cvZone.classList.remove('drag');
-  const { proms, plain } = collectDrop(e);
-  (async () => {
-    const handles = await Promise.all(proms);
-    const files = []; let usedHandles = false;
-    for (const h of handles){
-      if (!h) continue; usedHandles = true;
-      if (h.kind === 'directory'){
-        const inner = await pdfsFromDir(h);
-        if (inner.length){ dropDir = h; renderDirChip(); files.push(...inner); }
-        else toast('폴더에 PDF가 없어요');
-      } else files.push(await h.getFile());
-    }
-    if (!usedHandles) files.push(...plain);
-    if (files.length) addCvFiles(files);
-  })();
-});
+
+async function routeConvertDrop(proms, plain){
+  const handles = await Promise.all(proms);
+  const files = []; let usedHandles = false;
+  for (const h of handles){
+    if (!h) continue; usedHandles = true;
+    if (h.kind === 'directory'){
+      const inner = await pdfsFromDir(h);
+      if (inner.length){ dropDir = h; renderDirChip(); files.push(...inner); }
+      else toast('폴더에 PDF가 없어요');
+    } else files.push(await h.getFile());
+  }
+  if (!usedHandles) files.push(...plain);
+  if (files.length) addCvFiles(files);
+}
 
 /* 변환 파이프라인 — 테스트 훅에서도 직접 호출 */
 async function convertPdfToPngs(file, onProgress){
@@ -567,8 +578,9 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') $('#zoomo').
 function removeItem(i){ mgItems.splice(i, 1); renderMerge(); }
 function moveItem(from, gap){ const [it] = mgItems.splice(from, 1); mgItems.splice(gap > from ? gap - 1 : gap, 0, it); renderMerge(); }
 function clearMerge(){ mgItems = []; sources.forEach(s => s.url && URL.revokeObjectURL(s.url)); sources.clear(); renderMerge(); }
-$('#mgClear').addEventListener('click', clearMerge);
-$('#mgClear2').addEventListener('click', clearMerge);
+$('#mgClear2').addEventListener('click', () => $('#clearSheet').classList.add('on'));
+$('#csClose').addEventListener('click', () => $('#clearSheet').classList.remove('on'));
+$('#csGo').addEventListener('click', () => { $('#clearSheet').classList.remove('on'); clearMerge(); });
 $('#mgInput').addEventListener('change', e => { addMergeFiles([...e.target.files]); e.target.value = ''; });
 
 /* 삽입 위치: 그리드 좌표 → gap 인덱스(0=맨앞 … n=맨뒤) */
@@ -596,35 +608,51 @@ function showInsBar(gap){
 }
 function hideInsBar(){ const b = $('#insBar'); if (b) b.style.display = 'none'; }
 
-/* 외부 파일 드롭(빈 화면·그리드 공통) */
-function wireFileDrop(el, useGap){
-  ['dragover', 'dragenter'].forEach(ev => el.addEventListener(ev, e => {
-    if (![...e.dataTransfer.types].includes('Files')) return;
-    e.preventDefault();
-    if (el.id === 'mgZone') el.classList.add('drag');
-    if (useGap) showInsBar(gapIndex(e.clientX, e.clientY));
-  }));
-  el.addEventListener('dragleave', e => { if (el.id === 'mgZone') el.classList.remove('drag'); if (useGap && !el.contains(e.relatedTarget)) hideInsBar(); });
-  el.addEventListener('drop', e => {
-    e.preventDefault(); el.classList.remove('drag'); hideInsBar();
-    const at = useGap ? gapIndex(e.clientX, e.clientY) : undefined;
-    const { proms, plain } = collectDrop(e);
-    (async () => {
-      const handles = await Promise.all(proms);
-      const files = []; let used = false;
-      for (const h of handles){
-        if (!h) continue; used = true;
-        if (h.kind === 'directory'){ for await (const fh of h.values()) if (fh.kind === 'file' && /\.(pdf|png|jpe?g)$/i.test(fh.name)) files.push(await fh.getFile()); }
-        else files.push(await h.getFile());
-      }
-      if (!used) files.push(...plain);
-      if (files.length) addMergeFiles(files, at);
-    })();
-  });
-}
-wireFileDrop($('#mgZone'), false);
+/* 드롭 = 앱 전체 배경이 받는다. 변환 탭=변환 목록으로 / 병합 탭=카드 사이면 그 자리 삽입(insbar),
+   좌우·아래 여백이면 맨뒤 추가(점선 카드가 드롭존처럼 하이라이트) */
 $('#mgZone').addEventListener('click', () => $('#mgInput').click());
-wireFileDrop($('#mgGrid'), true);
+function mergeDropTarget(x, y){
+  const gr = $('#mgGrid').getBoundingClientRect();
+  const inside = x >= gr.left && x <= gr.right && y >= gr.top && y <= gr.bottom;
+  const gap = inside ? gapIndex(x, y) : mgItems.length;
+  return { gap, between: inside && gap < mgItems.length };
+}
+function clearDropCues(){
+  hideInsBar();
+  const add = document.getElementById('mgAdd'); if (add) add.classList.remove('drag');
+  $('#mgZone').classList.remove('drag');
+  cvZone.classList.remove('drag');
+}
+document.body.addEventListener('dragover', e => {
+  if (![...e.dataTransfer.types].includes('Files')) return;
+  e.preventDefault();
+  if (!$('#scrMerge').classList.contains('on')){ cvZone.classList.add('drag'); return; }
+  if (!mgItems.length){ $('#mgZone').classList.add('drag'); return; }
+  const t = mergeDropTarget(e.clientX, e.clientY);
+  const add = document.getElementById('mgAdd');
+  if (t.between){ showInsBar(t.gap); if (add) add.classList.remove('drag'); }
+  else { hideInsBar(); if (add) add.classList.add('drag'); }
+});
+document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) clearDropCues(); });
+document.body.addEventListener('drop', e => {
+  e.preventDefault();
+  const mergeOn = $('#scrMerge').classList.contains('on');
+  const at = mergeOn && mgItems.length ? mergeDropTarget(e.clientX, e.clientY).gap : undefined;
+  clearDropCues();
+  const { proms, plain } = collectDrop(e);
+  if (!mergeOn){ routeConvertDrop(proms, plain); return; }
+  (async () => {
+    const handles = await Promise.all(proms);
+    const files = []; let used = false;
+    for (const h of handles){
+      if (!h) continue; used = true;
+      if (h.kind === 'directory'){ for await (const fh of h.values()) if (fh.kind === 'file' && /\.(pdf|png|jpe?g)$/i.test(fh.name)) files.push(await fh.getFile()); }
+      else files.push(await h.getFile());
+    }
+    if (!used) files.push(...plain);
+    if (files.length) addMergeFiles(files, at);
+  })();
+});
 
 /* 카드 드래그 재배열(pointer) */
 (function(){
