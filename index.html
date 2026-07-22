@@ -29,6 +29,9 @@
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
+/* 스크롤바 숨김 — 페이지가 길어질 때 우측 바가 생기며 본문이 살짝 좁아지는 시프트가 '덜 만든 느낌'(유성 07-22). 휠·터치·키보드 스크롤은 그대로. */
+::-webkit-scrollbar{width:0;height:0}
+html{scrollbar-width:none}
 body{font-family:'Pretendard Variable',Pretendard,-apple-system,sans-serif;background:#fff;color:var(--g900);word-break:keep-all;-webkit-font-smoothing:antialiased}
 #app{max-width:1060px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 24px}
 svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
