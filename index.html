@@ -623,6 +623,10 @@ function clearDropCues(){
   $('#mgZone').classList.remove('drag');
   cvZone.classList.remove('drag');
 }
+// 내부 <img> 썸네일의 네이티브 드래그 차단 — 크로미움은 이미지 드래그에 파일 페이로드를 실어
+// 아래 body drop이 '새 이미지 삽입'으로 오인한다(pointer 재배열과 동시 발화 → a,b가 b,a,b로 복제).
+// PDF 페이지 썸네일은 canvas라 무관, 외부 파일 드롭은 dragstart 자체가 안 떠 영향 없음.
+document.addEventListener('dragstart', e => e.preventDefault());
 document.body.addEventListener('dragover', e => {
   if (![...e.dataTransfer.types].includes('Files')) return;
   e.preventDefault();
