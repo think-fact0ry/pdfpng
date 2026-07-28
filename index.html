@@ -137,6 +137,71 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .csheet .cbtns button:active{transform:scale(.97)}
 .csheet .cx2{background:var(--g100);color:var(--g700)}
 .csheet .cgo{background:var(--danger);color:#fff}
+.csheet .cgo.ok{background:var(--green600)}   /* 파괴적이지 않은 확정(글자 넣기 등) */
+
+/* ── 편집: 페이지 레일 + 편집 스테이지 ── */
+.edwrap{display:flex;gap:18px;align-items:flex-start;flex:1;min-height:0}
+.edrail{width:112px;flex:none;display:flex;flex-direction:column;gap:9px;max-height:calc(100dvh - 130px);overflow-y:auto;position:sticky;top:12px}
+.edrail button{border:0;background:none;padding:0;font:inherit;cursor:pointer}
+.edrail .rth{width:100%;aspect-ratio:1/1.414;background:#fff;border-radius:9px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;outline:2px solid transparent;transition:outline-color .12s}
+.edrail .rth canvas,.edrail .rth img{max-width:100%;max-height:100%;display:block}
+.edrail button.on .rth{outline-color:var(--green)}
+.edrail .rn{display:flex;align-items:center;justify-content:center;gap:5px;font-size:var(--fs-caption);font-weight:700;color:var(--g500);margin-top:5px}
+.edrail button.on .rn{color:var(--green-dark)}
+.edrail .rd{width:6px;height:6px;border-radius:50%;background:var(--green);visibility:hidden}
+.edrail button.has .rd{visibility:visible}
+
+.edstage{flex:1;min-width:0;display:flex;flex-direction:column}
+.edbar{display:flex;align-items:center;gap:6px;margin-bottom:11px}
+.edtool{display:flex;align-items:center;gap:6px;border:0;background:var(--g100);color:var(--g700);font:inherit;font-size:var(--fs-sm);font-weight:700;padding:10px 14px;border-radius:11px;cursor:pointer;transition:transform .12s}
+.edtool:active{transform:scale(.97)}
+.edtool svg{width:16px;height:16px}
+/* §4.9 예외 — on/off 모드 토글(펜)은 솔리드 채움+약한 그림자로 '켜짐'을 강하게 */
+.edtool.on{background:var(--green);color:#fff;box-shadow:0 2px 6px rgba(0,0,0,.13)}
+.edtool:disabled{background:var(--g50);color:var(--g300);cursor:default;transform:none}
+.edgap{flex:1}
+.edchips{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:11px}
+.edchips .lb{font-size:var(--fs-caption);font-weight:700;color:var(--g500)}
+.edchip{display:flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--g200);box-shadow:0 1px 3px rgba(25,31,40,.08);border-radius:99px;padding:5px 5px 5px 8px;font:inherit;font-size:var(--fs-caption);font-weight:700;color:var(--g700);cursor:pointer;max-width:230px}
+.edchip .ci{width:20px;height:20px;object-fit:contain;flex:none}
+.edchip .cn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.edchip .cd{border:0;background:none;font:inherit;color:var(--g400);font-size:15px;padding:0 4px;cursor:pointer;flex:none}
+.edchip .cd:hover{color:var(--g600)}
+
+.edcv{background:var(--g100);border-radius:var(--r-md);padding:18px;display:flex;justify-content:center;align-items:flex-start;overflow:auto;flex:1;min-height:360px;outline:2px dashed transparent;outline-offset:-6px;transition:outline-color .15s,background .15s}
+.edcv.drag{outline-color:var(--green500);background:var(--green50)}
+/* 페이지 한 장이 화면 안에 다 들어오게 — 세로 여유에서 폭을 역산한다(가로 페이지도 같은 식으로 처리).
+   --par(가로÷세로)만 JS가 넣고 치수는 CSS가 정한다(§3.7 매직 px 금지). */
+.edpage{position:relative;background:#fff;box-shadow:0 2px 14px rgba(25,31,40,.14);line-height:0;touch-action:none;flex:none;
+  aspect-ratio:var(--par,.7071);width:min(100%,max(300px,calc((100dvh - 330px) * var(--par,.7071))))}
+.edpage canvas.base{display:block;width:100%;height:auto}
+.edpage.pen{cursor:crosshair}
+.edink{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+.edobjs{position:absolute;inset:0}
+.edpage.pen .edobjs{pointer-events:none}
+.edobj{position:absolute;cursor:move;touch-action:none}
+.edobj img{width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none;user-select:none}
+.edobj.sel{outline:1.5px solid var(--green);outline-offset:2px}
+.edobj .h{position:absolute;width:13px;height:13px;border-radius:50%;background:#fff;border:2px solid var(--green);display:none}
+.edobj.sel .h{display:block}
+.edobj .h.nw{left:-7px;top:-7px;cursor:nwse-resize}
+.edobj .h.ne{right:-7px;top:-7px;cursor:nesw-resize}
+.edobj .h.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
+.edobj .h.se{right:-7px;bottom:-7px;cursor:nwse-resize}
+.edsz{position:absolute;left:50%;top:-31px;transform:translateX(-50%);background:var(--g800);color:#fff;font-size:11px;font-weight:700;line-height:1;border-radius:7px;padding:5px 8px;white-space:nowrap;display:none}
+.edobj.sizing .edsz{display:block}
+
+.edfoot{margin-top:22px}
+.edfoot .row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.edcnt{font-size:var(--fs-sm);font-weight:700;color:var(--g600)}
+.edcnt b{color:var(--green-dark)}
+.seg.sm{padding:3px}
+.seg.sm button{font-size:var(--fs-sm);font-weight:700;padding:8px 18px;border-radius:9px}
+.edbtns{display:flex;gap:10px}
+.edbtns .btn.weak{width:auto;padding:17px 26px;flex:none}
+.edtxt{display:flex;flex-direction:column;gap:10px}
+.edtxt input{border:0;background:var(--g100);border-radius:var(--r-md);padding:15px 16px;font:inherit;font-size:var(--fs-title);font-weight:600;outline:none;width:100%}
+.edtxt input:focus{background:#fff;box-shadow:inset 0 0 0 1.5px var(--green)}
 
 /* ── 오버레이·토스트 ── */
 .busy{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:850;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -155,6 +220,7 @@ input[type=file]{display:none}
     <div class="seg">
       <button type="button" class="on" data-t="convert">변환하기</button>
       <button type="button" data-t="merge">병합하기</button>
+      <button type="button" data-t="edit">편집하기</button>
     </div>
   </div>
 
@@ -203,6 +269,76 @@ input[type=file]{display:none}
     </div>
     <input type="file" id="mgInput" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" multiple>
   </section>
+
+  <!-- 편집하기: 도장·서명·글자 얹기 -->
+  <section class="scr" id="scrEdit">
+    <div id="edEmpty">
+      <div class="col">
+        <div class="zone" id="edZone" style="padding:76px 24px">
+          <div class="zi"><svg class="li" viewBox="0 0 24 24"><path d="M12 3v9M8.5 7.5 12 4l3.5 3.5M4 14v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3M7 14h10"/></svg></div>
+          <div class="zt">PDF나 이미지를 끌어다 놓으세요</div>
+          <div class="zs">도장을 찍고 서명할 수 있어요</div>
+        </div>
+      </div>
+    </div>
+    <div id="edMain" style="display:none">
+      <div class="edwrap">
+        <div class="edrail" id="edRail"></div>
+        <div class="edstage">
+          <div class="edbar">
+            <button type="button" class="edtool" id="edAddImg"><svg class="li" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg>이미지 넣기</button>
+            <button type="button" class="edtool" id="edAddTxt"><svg class="li" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>글자 넣기</button>
+            <button type="button" class="edtool" id="edPen"><svg class="li" viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>펜</button>
+            <button type="button" class="edtool" id="edAll" disabled><svg class="li" viewBox="0 0 24 24"><rect x="8" y="3" width="13" height="13" rx="2"/><path d="M16 19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2"/></svg>모든 페이지에</button>
+            <span class="edgap"></span>
+            <button type="button" class="edtool" id="edUndo" disabled><svg class="li" viewBox="0 0 24 24"><path d="M4 8a8 8 0 1 1-2 6M4 3v5h5"/></svg>되돌리기</button>
+            <button type="button" class="edtool" id="edDel" disabled><svg class="li" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12"/></svg>지우기</button>
+          </div>
+          <div class="edchips" id="edChips"></div>
+          <div class="edcv" id="edCv">
+            <div class="edpage" id="edPage">
+              <canvas class="base" id="edBase"></canvas>
+              <svg class="edink" id="edInk" preserveAspectRatio="none"></svg>
+              <div class="edobjs" id="edObjs"></div>
+            </div>
+          </div>
+          <div class="edfoot">
+            <div class="row">
+              <div class="edcnt" id="edCnt"></div>
+              <div class="seg sm" id="edOut">
+                <button type="button" class="on" data-o="pdf">PDF</button>
+                <button type="button" data-o="png">PNG</button>
+              </div>
+            </div>
+            <div class="edbtns">
+              <button type="button" class="btn weak" id="edReset">처음부터</button>
+              <button type="button" class="btn fill" id="edGo">PDF로 저장</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="file" id="edInput" accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg">
+    <input type="file" id="edImg" accept=".png,.jpg,.jpeg,image/png,image/jpeg" multiple>
+  </section>
+</div>
+
+<div class="csheet" id="edTxtSheet">
+  <div class="ct2">넣을 글자를 적어주세요</div>
+  <div class="edtxt">
+    <input type="text" id="edTxtVal" placeholder="예: 2026. 07. 28." autocomplete="off">
+    <div class="cbtns">
+      <button type="button" class="cx2" id="edTxtNo">닫기</button>
+      <button type="button" class="cgo ok" id="edTxtOk">넣기</button>
+    </div>
+  </div>
+</div>
+<div class="csheet" id="edResetSheet">
+  <div class="ct2">편집한 걸 모두 지우고 처음부터 할까요?</div>
+  <div class="cbtns">
+    <button type="button" class="cx2" id="edResetNo">닫기</button>
+    <button type="button" class="cgo" id="edResetGo">처음부터</button>
+  </div>
 </div>
 
 <div class="busy" id="busy"><div class="spin"></div><div class="bt" id="busyT">PDF를 만들고 있어요</div></div>
@@ -225,6 +361,7 @@ input[type=file]{display:none}
 <script src="./vendor/pdf-lib.min.js"></script>
 <script type="module">
 import * as pdfjsLib from './vendor/pdf.min.mjs';
+import { initEdit } from './edit.js';
 pdfjsLib.GlobalWorkerOptions.workerSrc = './vendor/pdf.worker.min.mjs';
 const { PDFDocument, degrees } = window.PDFLib;
 
@@ -268,12 +405,42 @@ async function pdfsFromDir(dirH){
 }
 
 /* ── 탭 ── */
+const SCREENS = { convert: '#scrConvert', merge: '#scrMerge', edit: '#scrEdit' };
 function setTab(t){
-  document.querySelectorAll('.seg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
-  $('#scrConvert').classList.toggle('on', t === 'convert');
-  $('#scrMerge').classList.toggle('on', t === 'merge');
+  if (!SCREENS[t]) return;
+  document.querySelectorAll('.hd .seg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
+  for (const k in SCREENS) $(SCREENS[k]).classList.toggle('on', k === t);
 }
-document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
+function curTab(){ for (const k in SCREENS) if ($(SCREENS[k]).classList.contains('on')) return k; return 'convert'; }
+document.querySelectorAll('.hd .seg button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
+
+/* 페이지 → 캔버스 (변환·썸네일·확대·편집이 공유. 흰 배경을 깐 뒤 렌더) */
+async function renderPageCanvas(doc, pageIdx, scale, opts){
+  const page = await doc.getPage(pageIdx + 1);
+  const vp = page.getViewport({ scale });
+  const c = document.createElement('canvas');
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  const task = page.render({ canvasContext: ctx, viewport: vp });
+  if (opts && opts.onTask) opts.onTask(task);
+  await task.promise;
+  return c;
+}
+
+/* 결과물 저장 — 폴더를 골라뒀으면 그 폴더에 쓰고(덮어쓴 수를 셈), 아니면 개별 다운로드 */
+async function saveItems(items, dir){
+  let over = 0;
+  for (const it of items){
+    if (dir){
+      let exists = false; try { await dir.getFileHandle(it.name); exists = true; } catch(e){}
+      const fh = await dir.getFileHandle(it.name, { create: true });
+      const w = await fh.createWritable(); await w.write(it.blob); await w.close();
+      if (exists) over++;
+    } else dl(it.name, it.blob);
+  }
+  return over;
+}
 
 /* ═══════════ 변환하기 ═══════════ */
 let savedDir = null, dropDir = null;   // dropDir = 폴더째 끌어온 경우 그 폴더에 저장(우선)
@@ -368,13 +535,7 @@ async function convertPdfToPngs(file, onProgress){
   const doc = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
   const n = doc.numPages, base = baseName(file.name), out = [];
   for (let i = 1; i <= n; i++){
-    const page = await doc.getPage(i);
-    const vp = page.getViewport({ scale: DPI / 72 });
-    const c = document.createElement('canvas');
-    c.width = Math.round(vp.width); c.height = Math.round(vp.height);
-    const ctx = c.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-    await page.render({ canvasContext: ctx, viewport: vp }).promise;
+    const c = await renderPageCanvas(doc, i - 1, DPI / 72);
     const blob = await new Promise(r => c.toBlob(r, 'image/png'));
     out.push({ name: pngName(base, i - 1, n), blob });
     if (onProgress) onProgress(i, n);
@@ -390,22 +551,14 @@ $('#cvGo').addEventListener('click', async () => {
   if (dir && !(await ensureRW(dir))){ toast('폴더 권한을 허용하면 저장할 수 있어요'); return; }
   $('#cvGo').disabled = true;
   let png = 0, pdf = 0, over = 0, failed = 0;
-  const save = async it => {
-    if (dir){
-      let exists = false; try { await dir.getFileHandle(it.name); exists = true; } catch(e){}
-      const fh = await dir.getFileHandle(it.name, { create: true });
-      const w = await fh.createWritable(); await w.write(it.blob); await w.close();
-      if (exists) over++;
-    } else dl(it.name, it.blob);
-  };
   for (const f of cvFiles){
     if (f.status === 'bad'){ failed++; continue; }
     f.status = 'work'; f.done = 0; renderCvRows();
     try {
       if (f.kind === 'pdf'){
         const items = await convertPdfToPngs(f.file, (i) => { f.done = i; renderCvRows(); });
-        for (const it of items){ await save(it); png++; }
-      } else { await save(await imageToPdf(f.file)); pdf++; }
+        over += await saveItems(items, dir); png += items.length;
+      } else { over += await saveItems([await imageToPdf(f.file)], dir); pdf++; }
       f.status = 'ok';
     } catch (err) { f.status = 'bad'; f.msg = '열 수 없어요'; failed++; }
     renderCvRows();
@@ -488,13 +641,8 @@ async function renderThumb(it){
     if (it.kind === 'image'){ const img = new Image(); img.src = src.url; await img.decode(); it.thumb = img; }
     else {
       const doc = await getPjs(src);
-      const page = await doc.getPage(it.pageIndex + 1);
-      const vp0 = page.getViewport({ scale: 1 });
-      const vp = page.getViewport({ scale: 300 / vp0.width });
-      const c = document.createElement('canvas'); c.width = vp.width | 0; c.height = vp.height | 0;
-      const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
-      await page.render({ canvasContext: ctx, viewport: vp }).promise;
-      it.thumb = c;
+      const vp0 = (await doc.getPage(it.pageIndex + 1)).getViewport({ scale: 1 });
+      it.thumb = await renderPageCanvas(doc, it.pageIndex, 300 / vp0.width);
     }
     if (it.el){ const th = it.el.querySelector('.th'); th.innerHTML = ''; th.appendChild(it.thumb); applyRot(it); }
   } finally { it.rendering = false; }
@@ -565,12 +713,8 @@ function openZoom(i){
       el = rotCanvas(bmp, bmp.width, bmp.height, it.rot);
     } else {
       const doc = await getPjs(src);
-      const page = await doc.getPage(it.pageIndex + 1);
-      const vp0 = page.getViewport({ scale: 1 });
-      const vp = page.getViewport({ scale: Math.min(1600 / vp0.width, 1600 / vp0.height, 3) });
-      const c = document.createElement('canvas'); c.width = vp.width | 0; c.height = vp.height | 0;
-      const x = c.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, c.width, c.height);
-      await page.render({ canvasContext: x, viewport: vp }).promise;
+      const vp0 = (await doc.getPage(it.pageIndex + 1)).getViewport({ scale: 1 });
+      const c = await renderPageCanvas(doc, it.pageIndex, Math.min(1600 / vp0.width, 1600 / vp0.height, 3));
       el = rotCanvas(c, c.width, c.height, it.rot);
     }
     o.appendChild(el); o.classList.add('on');
@@ -625,6 +769,8 @@ function clearDropCues(){
   const add = document.getElementById('mgAdd'); if (add) add.classList.remove('drag');
   $('#mgZone').classList.remove('drag');
   cvZone.classList.remove('drag');
+  $('#edZone').classList.remove('drag');
+  $('#edCv').classList.remove('drag');
 }
 // 내부 <img> 썸네일의 네이티브 드래그 차단 — 크로미움은 이미지 드래그에 파일 페이로드를 실어
 // 아래 body drop이 '새 이미지 삽입'으로 오인한다(pointer 재배열과 동시 발화 → a,b가 b,a,b로 복제).
@@ -633,7 +779,9 @@ document.addEventListener('dragstart', e => e.preventDefault());
 document.body.addEventListener('dragover', e => {
   if (![...e.dataTransfer.types].includes('Files')) return;
   e.preventDefault();
-  if (!$('#scrMerge').classList.contains('on')){ cvZone.classList.add('drag'); return; }
+  const tab = curTab();
+  if (tab === 'convert'){ cvZone.classList.add('drag'); return; }
+  if (tab === 'edit'){ $(edHasDoc() ? '#edCv' : '#edZone').classList.add('drag'); return; }
   if (!mgItems.length){ $('#mgZone').classList.add('drag'); return; }
   const t = mergeDropTarget(e.clientX, e.clientY);
   const add = document.getElementById('mgAdd');
@@ -643,11 +791,17 @@ document.body.addEventListener('dragover', e => {
 document.body.addEventListener('dragleave', e => { if (!e.relatedTarget) clearDropCues(); });
 document.body.addEventListener('drop', e => {
   e.preventDefault();
-  const mergeOn = $('#scrMerge').classList.contains('on');
-  const at = mergeOn && mgItems.length ? mergeDropTarget(e.clientX, e.clientY).gap : undefined;
+  const tab = curTab();
+  const at = tab === 'merge' && mgItems.length ? mergeDropTarget(e.clientX, e.clientY).gap : undefined;
   clearDropCues();
   const { proms, plain } = collectDrop(e);
-  if (!mergeOn){ routeConvertDrop(proms, plain); return; }
+  if (tab === 'convert'){ routeConvertDrop(proms, plain); return; }
+  if (tab === 'edit'){ (async () => {
+    const handles = await Promise.all(proms);
+    const files = [];
+    for (const h of handles){ if (h && h.kind === 'file') files.push(await h.getFile()); }
+    edDrop(files.length ? files : plain);
+  })(); return; }
   (async () => {
     const handles = await Promise.all(proms);
     const files = []; let used = false;
@@ -776,8 +930,17 @@ if ('launchQueue' in window){
 
 renderDirChip();
 
+/* ═══════════ 편집하기 (edit.js) ═══════════ */
+const edit = initEdit({
+  pdfjsLib, PDFLib: window.PDFLib, $, toast, busy, dl, showDone, baseName, DPI, A4,
+  getPjs, renderPageCanvas, saveItems, idb, ensureRW, setTab,
+  getOutDir: () => dropDir || savedDir
+});
+const edHasDoc = edit.hasDoc, edDrop = edit.drop;
+
 /* 헤드리스 검증 훅 — 데이터 없음, UI와 같은 함수를 그대로 노출 */
-window.__tf = { convertPdfToPngs, imageToPdf, addCvFiles, addMergeFiles, buildMergedPdf, moveItem, rotateItem, removeItem, clearMerge, setTab, zoom: openZoom, items: () => mgItems, DPI, pdfjs: pdfjsLib,
+window.__tf = { convertPdfToPngs, imageToPdf, addCvFiles, addMergeFiles, buildMergedPdf, moveItem, rotateItem, removeItem, clearMerge, setTab, curTab, zoom: openZoom, items: () => mgItems, DPI, pdfjs: pdfjsLib,
+  renderPageCanvas, saveItems, edit,
   _setDir: h => { savedDir = h; renderDirChip(); } };
 </script>
 <script src="install.js"></script>
