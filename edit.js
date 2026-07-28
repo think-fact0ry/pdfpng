@@ -20,6 +20,9 @@ export function initEdit(ctx){
   const STAMP_W = 0.13;           // 도장 기본 폭 — A4에서 약 27mm(실물 도장 크기대)
   const TEXT_H  = 0.028;          // 글자 기본 높이 — A4에서 약 6mm
   const MIN_W = 0.015, MAX_W = 1.6;
+  const ERASE_R = 0.018;          // 지우개 반경(표시폭 배수) — 확대하면 그만큼 정밀해진다
+  const ZOOM_MAX = 6, ZOOM_STEP = 1.12;
+  const MAX_SIDE = 3600;          // 확대해도 캔버스 한 변을 이 이상 키우지 않는다(A4에서 약 308dpi, 메모리 보호)
 
   /* ── 상태 ── */
   let doc = null;        // {name, bytes, pjs, pages:[geo]}
@@ -27,6 +30,7 @@ export function initEdit(ctx){
   let objects = [];      // {id, page, type:'image'|'ink', assetId?, u, v, w, pts?, sw?}
   let sel = null, page = 0, tool = 'select', out = 'pdf';
   let undoStack = [], seq = 0, renderGen = 0, curTask = null;
+  let zoom = 1, zoomTimer = null;
 
   const uid = () => ++seq;
   const el = {};
@@ -99,7 +103,7 @@ export function initEdit(ctx){
       const pjs = await getPjs(src);                 // getPjs가 .slice(0) 사본을 넘겨 원본 detach를 막는다
       const pages = await measurePages(pjs);
       doc = { name: file.name, bytes, pjs: src.pjs, pages };
-      objects = []; undoStack = []; sel = null; page = 0; setTool('select');
+      objects = []; undoStack = []; sel = null; page = 0; zoom = 1; applyZoom(); setTool('select');
       busy(false);
       renderAll();
     } catch (err){
@@ -153,15 +157,6 @@ export function initEdit(ctx){
     persistAssets(); renderChips(); syncObjects(); renderRailMarks(); renderFoot();
   }
 
-  function clearAssets(){
-    assets.filter(a => !a.temp).forEach(a => URL.revokeObjectURL(a.url));
-    const gone = new Set(assets.filter(a => !a.temp).map(a => a.id));
-    assets = assets.filter(a => a.temp);
-    objects = objects.filter(o => !gone.has(o.assetId));
-    persistAssets(); renderChips(); syncObjects(); renderRailMarks(); renderFoot();
-    toast('저장해둔 도장을 지웠어요');
-  }
-
   /* 글자 → 투명 PNG 에셋. pdf-lib에 한글 폰트를 실을 필요 없이 이미 로드된 웹폰트를 그대로 쓴다. */
   async function textAsset(text){
     try { await document.fonts.ready; } catch(e){}
@@ -207,18 +202,26 @@ export function initEdit(ctx){
     return o;
   }
 
-  function stampAllPages(){
-    const o = objects.find(x => x.id === sel);
-    if (!o || o.type !== 'image') return;
-    snapshot();
-    let n = 0;
-    for (let p = 0; p < doc.pages.length; p++){
-      if (p === o.page) continue;
-      objects.push({ id: uid(), page: p, type: 'image', assetId: o.assetId, u: o.u, v: o.v, w: o.w });
-      n++;
+  /* 지우개 — 점이 아니라 '획과의 최단거리'로 판정해야 성기게 찍힌 획도 잡힌다 */
+  function distToStroke(o, u, v){
+    const P = o.pts;
+    let best = Infinity;
+    for (let i = 0; i < P.length; i++){
+      if (i === P.length - 1){ best = Math.min(best, Math.hypot(P[i][0] - u, P[i][1] - v)); break; }
+      const [x1, y1] = P[i], [x2, y2] = P[i + 1];
+      const dx = x2 - x1, dy = y2 - y1, L = dx * dx + dy * dy;
+      const t = L ? Math.max(0, Math.min(1, ((u - x1) * dx + (v - y1) * dy) / L)) : 0;
+      best = Math.min(best, Math.hypot(x1 + t * dx - u, y1 + t * dy - v));
     }
-    renderRailMarks(); renderFoot();
-    toast(`나머지 ${n}페이지에도 넣었어요`);
+    return best;
+  }
+  function eraseAt(u, v){
+    const thr = ERASE_R / zoom;
+    const gone = new Set(objsOn(page).filter(o => o.type === 'ink' && distToStroke(o, u, v) < thr).map(o => o.id));
+    if (!gone.size) return false;
+    objects = objects.filter(o => !gone.has(o.id));
+    syncObjects();
+    return true;
   }
 
   function delSel(){
@@ -283,8 +286,9 @@ export function initEdit(ctx){
     const gen = ++renderGen;
     if (curTask){ try { curTask.cancel(); } catch(e){} curTask = null; }
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const scale = Math.min(cssW * dpr / g.dispW, MAX_SIDE / Math.max(g.dispW, g.dispH));
     try {
-      const c = await renderPageCanvas(await doc.pjs, page, cssW * dpr / g.dispW, { onTask: t => (curTask = t) });
+      const c = await renderPageCanvas(await doc.pjs, page, scale, { onTask: t => (curTask = t) });
       if (gen !== renderGen) return;
       el.base.width = c.width; el.base.height = c.height;
       el.base.getContext('2d').drawImage(c, 0, 0);
@@ -294,7 +298,7 @@ export function initEdit(ctx){
 
   function setPage(i){
     if (i === page || !doc) return;
-    page = i; sel = null;
+    page = i; sel = null; zoom = 1; applyZoom();
     renderRailMarks(); renderStage(); renderFoot();
   }
 
@@ -331,7 +335,7 @@ export function initEdit(ctx){
       ? `<span class="lb">저장해둔 도장</span>` + keep.map(a =>
           `<button type="button" class="edchip" data-a="${a.id}"><img class="ci" src="${a.url}" alt="">
              <span class="cn">${escapeHtml(a.name)}</span><span class="cd" data-x="${a.id}" role="button" aria-label="빼기">×</span></button>`
-        ).join('') + `<button type="button" class="edchip" id="edChipsClear" style="border-style:dashed"><span class="cn">모두 비우기</span></button>`
+        ).join('')
       : '';
   }
   const escapeHtml = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
@@ -346,23 +350,44 @@ export function initEdit(ctx){
       : `${doc.pages.length}페이지 · 아직 넣은 게 없어요`;
     el.undo.disabled = !undoStack.length;
     el.del.disabled = sel == null;
-    el.all.disabled = sel == null || doc.pages.length < 2 || !objects.some(o => o.id === sel && o.type === 'image');
     el.go.textContent = out === 'pdf' ? 'PDF로 저장' : 'PNG로 저장';
     el.go.disabled = !objects.length;
   }
 
   function setTool(t){
     tool = t;
-    el.pen.classList.toggle('on', t === 'pen');
+    [...el.tools.children].forEach(b => b.classList.toggle('on', b.dataset.t === t));
     el.page.classList.toggle('pen', t === 'pen');
-    if (t === 'pen'){ sel = null; syncObjects(); renderFoot(); }
+    el.page.classList.toggle('erase', t === 'erase');
+    if (t !== 'select' && sel != null){ sel = null; syncObjects(); }
+    renderFoot();
+  }
+
+  /* ── 확대 — 정밀하게 서명하려면 화면만 키우면 안 되고 캔버스를 다시 그려야 선명하다 ── */
+  function applyZoom(){
+    el.page.style.setProperty('--zoom', zoom.toFixed(4));
+    el.zoomV.textContent = Math.round(zoom * 100) + '%';
+    el.zoom.classList.toggle('on', Math.abs(zoom - 1) > 0.005);
+  }
+  function setZoom(next, anchor){
+    next = Math.min(ZOOM_MAX, Math.max(1, next));
+    if (Math.abs(next - zoom) < 1e-4) return;
+    const r0 = el.page.getBoundingClientRect();
+    const ax = anchor ? (anchor.x - r0.left) / r0.width : .5;
+    const ay = anchor ? (anchor.y - r0.top) / r0.height : .5;
+    zoom = next; applyZoom();
+    const r1 = el.page.getBoundingClientRect();          // 커서 아래 지점이 그대로 있게 스크롤 보정
+    el.cv.scrollLeft += (r1.left + ax * r1.width) - (anchor ? anchor.x : r0.left + ax * r0.width);
+    el.cv.scrollTop  += (r1.top  + ay * r1.height) - (anchor ? anchor.y : r0.top  + ay * r0.height);
+    clearTimeout(zoomTimer);
+    zoomTimer = setTimeout(renderStage, 140);            // 휠을 굴리는 동안은 CSS 확대, 멈추면 고해상 재렌더
   }
 
   /* ══════════ 포인터 (이동·크기조절·펜) ══════════ */
   /* 전역에서 HTML5 드래그를 막아뒀으므로(index.html: document dragstart preventDefault)
      이동·크기조절·펜은 전부 pointer 이벤트로만 구현한다. */
   function bindPointer(){
-    let mode = null, start = null, ink = null;
+    let mode = null, start = null, ink = null, tapObj = null, erased = false, moved = 0, sx = 0, sy = 0;
 
     const norm = e => {
       const r = el.page.getBoundingClientRect();
@@ -371,8 +396,18 @@ export function initEdit(ctx){
 
     el.page.addEventListener('pointerdown', e => {
       if (!doc) return;
+      sx = e.clientX; sy = e.clientY; moved = 0;
+      if (tool === 'erase'){
+        const n = norm(e);
+        snapshot(); erased = eraseAt(n.u, n.v); mode = 'erase';
+        try { el.page.setPointerCapture(e.pointerId); } catch(_){}
+        e.preventDefault();
+        return;
+      }
       if (tool === 'pen'){
         const n = norm(e);
+        // 펜을 켠 채로도 도장·글자를 톡 누르면 고를 수 있게, 눌린 오브젝트를 기억해 둔다(움직이면 그냥 획).
+        tapObj = e.target.closest('.edobj');
         snapshot();
         ink = { id: uid(), page, type: 'ink', pts: [[n.u, n.v]], sw: INK_SW };
         objects.push(ink); mode = 'ink';
@@ -397,6 +432,8 @@ export function initEdit(ctx){
     el.page.addEventListener('pointermove', e => {
       if (!mode) return;
       const n = norm(e);
+      moved = Math.max(moved, Math.hypot(e.clientX - sx, e.clientY - sy));
+      if (mode === 'erase'){ if (eraseAt(n.u, n.v)) erased = true; return; }
       if (mode === 'ink'){
         const last = ink.pts[ink.pts.length - 1];
         if (Math.hypot(n.u - last[0], n.v - last[1]) < 0.0015) return;   // 지터·용량 동시 절감
@@ -428,9 +465,20 @@ export function initEdit(ctx){
 
     const end = () => {
       if (!mode) return;
-      if (mode === 'ink'){
-        if (ink.pts.length < 2 && objects[objects.length - 1] === ink){ objects.pop(); undoStack.pop(); }
-        ink = null; syncObjects();
+      if (mode === 'erase'){
+        if (!erased) undoStack.pop();                    // 아무것도 안 지웠으면 되돌리기 기록도 남기지 않는다
+      } else if (mode === 'ink'){
+        const tapped = tapObj && moved < 5;              // 안 움직이고 뗐다 = 획이 아니라 '고르기'
+        if (tapped || ink.pts.length < 2){
+          objects = objects.filter(o => o !== ink);
+          undoStack.pop();
+        }
+        if (tapped){
+          setTool('select');
+          const o = objects.find(x => x.id === +tapObj.dataset.id);
+          if (o) sel = o.id;
+        }
+        ink = null; tapObj = null; syncObjects();
       } else if (mode === 'size'){
         const a = assetOf(start.o.assetId); if (a && !a.temp){ a.lastW = start.o.w; persistAssets(); }
       }
@@ -581,7 +629,7 @@ export function initEdit(ctx){
   let pendingDoc = null;
 
   function reset(){
-    doc = null; objects = []; undoStack = []; sel = null; page = 0;
+    doc = null; objects = []; undoStack = []; sel = null; page = 0; zoom = 1; applyZoom();
     assets.filter(a => a.temp).forEach(a => URL.revokeObjectURL(a.url));
     assets = assets.filter(a => !a.temp);
     if (curTask){ try { curTask.cancel(); } catch(e){} curTask = null; }
@@ -597,8 +645,8 @@ export function initEdit(ctx){
       empty: $('#edEmpty'), main: $('#edMain'), rail: $('#edRail'), cv: $('#edCv'),
       page: $('#edPage'), base: $('#edBase'), ink: $('#edInk'), objs: $('#edObjs'),
       chips: $('#edChips'), cnt: $('#edCnt'), go: $('#edGo'), undo: $('#edUndo'),
-      del: $('#edDel'), all: $('#edAll'), pen: $('#edPen'), zone: $('#edZone'),
-      repSheet: $('#edResetSheet')
+      del: $('#edDel'), tools: $('#edTools'), zone: $('#edZone'),
+      zoom: $('#edZoom'), zoomV: $('#edZoomV'), repSheet: $('#edResetSheet')
     });
 
     el.zone.addEventListener('click', () => $('#edInput').click());
@@ -609,13 +657,21 @@ export function initEdit(ctx){
       e.target.value = '';
     });
 
-    el.pen.addEventListener('click', () => setTool(tool === 'pen' ? 'select' : 'pen'));
+    el.tools.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (b) setTool(b.dataset.t);
+    });
     el.undo.addEventListener('click', undo);
     el.del.addEventListener('click', delSel);
-    el.all.addEventListener('click', stampAllPages);
+
+    // 휠 확대 — 커서 아래 지점을 붙잡은 채 키운다
+    el.cv.addEventListener('wheel', e => {
+      if (!doc) return;
+      e.preventDefault();
+      setZoom(zoom * (e.deltaY < 0 ? ZOOM_STEP : 1 / ZOOM_STEP), { x: e.clientX, y: e.clientY });
+    }, { passive: false });
+    el.zoom.addEventListener('click', () => { setZoom(1); });
 
     el.chips.addEventListener('click', e => {
-      if (e.target.id === 'edChipsClear' || e.target.closest('#edChipsClear')) return clearAssets();
       const x = e.target.closest('.cd');
       if (x){ e.stopPropagation(); return removeAsset(+x.dataset.x); }
       const chip = e.target.closest('.edchip[data-a]');
@@ -666,7 +722,7 @@ export function initEdit(ctx){
       if (e.target.tagName === 'INPUT') return;
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z'){ e.preventDefault(); undo(); }
       else if (e.key === 'Delete' || e.key === 'Backspace'){ if (sel != null){ e.preventDefault(); delSel(); } }
-      else if (e.key === 'Escape'){ if (tool === 'pen') setTool('select'); else if (sel != null){ sel = null; syncObjects(); renderFoot(); } }
+      else if (e.key === 'Escape'){ if (tool !== 'select') setTool('select'); else if (zoom !== 1) setZoom(1); else if (sel != null){ sel = null; syncObjects(); renderFoot(); } }
     });
 
     let rz;
@@ -684,11 +740,11 @@ export function initEdit(ctx){
 
   return {
     hasDoc: () => !!doc,
-    drop, loadDoc, addAsset, place, stampAllPages, delSel, undo, setPage, setTool,
+    drop, loadDoc, addAsset, place, delSel, undo, setPage, setTool, setZoom, eraseAt,
     setOut: v => { out = v; [...$('#edOut').children].forEach(x => x.classList.toggle('on', x.dataset.o === v)); renderFoot(); },
     addInk: (p, pts) => { snapshot(); objects.push({ id: uid(), page: p, type: 'ink', pts, sw: INK_SW }); syncObjects(); renderRailMarks(); renderFoot(); },
-    buildPdf: buildEditedPdf, buildPngs: buildEditedPngs, save, reset, clearAssets,
-    state: () => ({ doc, assets, objects, sel, page, tool, out, undo: undoStack.length }),
-    geom: { measurePages, dispToPdfImage, inkPathD, vpOf, objH }
+    buildPdf: buildEditedPdf, buildPngs: buildEditedPngs, save, reset,
+    state: () => ({ doc, assets, objects, sel, page, tool, out, zoom, undo: undoStack.length }),
+    geom: { measurePages, dispToPdfImage, inkPathD, vpOf, objH, distToStroke }
   };
 }
