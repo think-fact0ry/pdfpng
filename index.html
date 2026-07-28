@@ -141,9 +141,11 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 
 /* ── 편집: 페이지 레일 + 편집 스테이지 ── */
 .edwrap{display:flex;gap:18px;align-items:flex-start;flex:1;min-height:0}
-.edrail{width:112px;flex:none;display:flex;flex-direction:column;gap:9px;max-height:calc(100dvh - 130px);overflow-y:auto;position:sticky;top:12px}
+/* ⚠️ overflow-y:auto는 CSS 규격상 overflow-x도 auto로 만든다 → 선택 링이 좌우에서 잘리고
+   첫 항목은 위쪽까지 잘린다. 레일 안쪽 여백으로 링이 그려질 자리를 스크롤 영역 안에 확보한다. */
+.edrail{width:126px;flex:none;display:flex;flex-direction:column;gap:11px;max-height:calc(100dvh - 130px);overflow-y:auto;position:sticky;top:12px;padding:6px 7px}
 .edrail button{border:0;background:none;padding:0;font:inherit;cursor:pointer}
-.edrail .rth{width:100%;aspect-ratio:1/1.414;background:#fff;border-radius:9px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;outline:2px solid transparent;transition:outline-color .12s}
+.edrail .rth{width:100%;aspect-ratio:1/1.414;background:#fff;border-radius:9px;box-shadow:0 1px 4px rgba(0,0,0,.08);display:flex;align-items:center;justify-content:center;overflow:hidden;outline:2px solid transparent;outline-offset:2px;transition:outline-color .12s}
 .edrail .rth canvas,.edrail .rth img{max-width:100%;max-height:100%;display:block}
 .edrail button.on .rth{outline-color:var(--green)}
 .edrail .rn{display:flex;align-items:center;justify-content:center;gap:5px;font-size:var(--fs-caption);font-weight:700;color:var(--g500);margin-top:5px}
@@ -161,9 +163,10 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .edtool:disabled{background:var(--g50);color:var(--g300);cursor:default;transform:none}
 .edtool.act{background:var(--green-bg);color:var(--green-dark)}   /* 무언가를 '넣는' 액션 = 연초록으로 한 묶음 */
 .edgap{flex:1}
-/* 도구 세그 — 모드(선택·펜·지우개)는 '넣기' 액션과 다른 문법이어야 한다(§4.9 세그=지금 무엇인가) */
-.seg.tool{padding:3px;gap:2px}
-.seg.tool button{font-size:var(--fs-sm);padding:9px 15px;border-radius:10px;display:flex;align-items:center;gap:6px}
+/* 도구 세그 — 모드(선택·펜·지우개)는 '넣기' 액션과 다른 문법이어야 한다(§4.9 세그=지금 무엇인가).
+   ⚠️ 모양은 알약(999px) — 상단 탭 세그(변환/병합/편집)와 라운드까지 같으면 위계가 안 보인다(유성 2026-07-28). */
+.seg.tool{padding:3px;gap:2px;border-radius:999px}
+.seg.tool button{font-size:var(--fs-sm);padding:9px 16px;border-radius:999px;display:flex;align-items:center;gap:6px}
 .seg.tool button svg{width:16px;height:16px}
 .seg.tool button.on{background:#fff;color:var(--green-dark);box-shadow:0 1px 4px rgba(0,0,0,.1)}
 .edchips{display:flex;gap:7px;align-items:center;flex-wrap:wrap;margin-bottom:11px}
