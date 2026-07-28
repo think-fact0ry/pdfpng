@@ -12,7 +12,7 @@
  */
 export function initEdit(ctx){
   const { pdfjsLib, PDFLib, $, toast, busy, dl, showDone, baseName, DPI,
-          getPjs, renderPageCanvas, saveItems, idb, ensureRW, setTab, getOutDir } = ctx;
+          getPjs, renderPageCanvas, saveItems, idb, ensureRW, setTab, initSegSlide, getOutDir } = ctx;
   const { PDFDocument, rgb, degrees, LineCapStyle } = PDFLib;
 
   const PT_MM   = 25.4 / 72;      // 1pt를 mm로
@@ -31,12 +31,16 @@ export function initEdit(ctx){
   let sel = null, page = 0, tool = 'select', out = 'pdf';
   let undoStack = [], seq = 0, renderGen = 0, curTask = null;
   let zoom = 1, zoomTimer = null;
+  /* 화면·출력에 쓸 페이지 순서(원본 인덱스 배열). 페이지를 빼면 여기서만 빠지고 doc.pages는 그대로 —
+     오브젝트의 page는 늘 '원본 인덱스'라 빼기·되돌리기에도 좌표가 안 흔들린다. */
+  let order = [];
 
   const uid = () => ++seq;
   const el = {};
-  const geoOf = i => doc.pages[i];
+  const geoSrc = s => doc.pages[s];             // 원본 인덱스로 찾기
+  const geoOf = i => doc.pages[order[i]];       // 표시 인덱스로 찾기
   const assetOf = id => assets.find(a => a.id === id);
-  const objsOn = p => objects.filter(o => o.page === p);
+  const objsOn = i => objects.filter(o => o.page === order[i]);   // i = 표시 인덱스
   /* 이미지 오브젝트의 높이(표시폭 배수) — 종횡비는 원본이 정한다 */
   const objH = o => { const a = assetOf(o.assetId); return a ? o.w * a.natH / a.natW : o.w; };
 
@@ -103,6 +107,7 @@ export function initEdit(ctx){
       const pjs = await getPjs(src);                 // getPjs가 .slice(0) 사본을 넘겨 원본 detach를 막는다
       const pages = await measurePages(pjs);
       doc = { name: file.name, bytes, pjs: src.pjs, pages };
+      order = pages.map((_, i) => i);
       objects = []; undoStack = []; sel = null; page = 0; zoom = 1; applyZoom(); setTool('select');
       busy(false);
       renderAll();
@@ -180,14 +185,31 @@ export function initEdit(ctx){
   /* ══════════ 오브젝트 조작 ══════════ */
 
   function snapshot(){
-    undoStack.push(JSON.stringify(objects));
+    undoStack.push(JSON.stringify({ o: objects, r: order }));
     if (undoStack.length > 30) undoStack.shift();
   }
   function undo(){
     if (!undoStack.length) return;
-    objects = JSON.parse(undoStack.pop());
+    const s = JSON.parse(undoStack.pop());
+    objects = s.o;
+    const pageBack = order.length !== s.r.length;   // 페이지 빼기를 되돌리면 레일을 다시 그린다
+    order = s.r;
+    if (page >= order.length) page = order.length - 1;
     if (!objects.some(o => o.id === sel)) sel = null;
-    syncObjects(); renderRailMarks(); renderFoot();
+    if (pageBack){ renderRail(); renderStage(); } else { syncObjects(); renderRailMarks(); }
+    renderFoot();
+  }
+
+  /* 페이지 빼기 — 그 페이지 위 오브젝트도 같이 빠진다(되돌리기로 통째 복원). 마지막 한 장은 못 뺀다. */
+  function removePage(i){
+    if (!doc || order.length < 2) { toast('마지막 한 장은 뺄 수 없어요'); return; }
+    snapshot();
+    const srcIdx = order[i];
+    objects = objects.filter(o => o.page !== srcIdx);
+    order.splice(i, 1);
+    if (page >= order.length) page = order.length - 1;
+    sel = null;
+    renderRail(); renderStage(); renderFoot();
   }
 
   function place(asset, w){
@@ -195,7 +217,7 @@ export function initEdit(ctx){
     const ww = w || asset.lastW || (asset.temp ? (asset.natW / asset.natH) * TEXT_H : STAMP_W);
     const hh = ww * asset.natH / asset.natW;
     snapshot();
-    const o = { id: uid(), page, type: 'image', assetId: asset.id,
+    const o = { id: uid(), page: order[page], type: 'image', assetId: asset.id,
                 u: 0.5 - ww / 2, v: (g.dispH / g.dispW) / 2 - hh / 2, w: ww };
     objects.push(o); sel = o.id;
     syncObjects(); renderRailMarks(); renderFoot();
@@ -247,32 +269,33 @@ export function initEdit(ctx){
   }), { rootMargin: '300px' });
 
   function renderRail(){
-    railIO.disconnect();               // 옛 버튼 관찰이 남으면 IntersectionObserver가 DOM을 붙잡는다
+    railIO.disconnect();               // 옛 항목 관찰이 남으면 IntersectionObserver가 DOM을 붙잡는다
     el.rail.innerHTML = '';
     if (!doc) return;
-    doc.pages.forEach((g, i) => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.dataset.p = i;
-      b.className = i === page ? 'on' : '';
-      b.innerHTML = `<div class="rth"></div><div class="rn"><span class="rd"></span><span>${i + 1}</span></div>`;
-      b.addEventListener('click', () => setPage(i));
-      el.rail.appendChild(b);
-      railIO.observe(b);
+    order.forEach((srcIdx, i) => {
+      const it = document.createElement('div');
+      it.className = 'ritem'; it.dataset.p = i;
+      it.innerHTML = `<button type="button" class="rbtn"><div class="rth"></div><div class="rn"><span class="rd"></span><span>${i + 1}</span></div></button>
+        <button type="button" class="rx" aria-label="${i + 1}쪽 빼기"><svg class="li" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>`;
+      it.querySelector('.rbtn').addEventListener('click', () => setPage(i));
+      it.querySelector('.rx').addEventListener('click', e => { e.stopPropagation(); removePage(i); });
+      el.rail.appendChild(it);
+      railIO.observe(it);
     });
     renderRailMarks();
   }
-  async function railThumb(i, btn){
-    if (btn._done) return; btn._done = true;
+  async function railThumb(i, node){
+    if (node._done) return; node._done = true;
     try {
       const g = geoOf(i);
-      const c = await renderPageCanvas(await doc.pjs, i, 150 / g.dispW);
-      const box = btn.querySelector('.rth'); box.innerHTML = ''; box.appendChild(c);
-    } catch(e){ btn._done = false; }
+      const c = await renderPageCanvas(await doc.pjs, order[i], 150 / g.dispW);
+      const box = node.querySelector('.rth'); box.innerHTML = ''; box.appendChild(c);
+    } catch(e){ node._done = false; }
   }
   function renderRailMarks(){
-    [...el.rail.children].forEach((b, i) => {
-      b.classList.toggle('on', i === page);
-      b.classList.toggle('has', objects.some(o => o.page === i));
+    [...el.rail.children].forEach((it, i) => {
+      it.classList.toggle('on', i === page);
+      it.classList.toggle('has', objects.some(o => o.page === order[i]));
     });
   }
 
@@ -288,7 +311,7 @@ export function initEdit(ctx){
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const scale = Math.min(cssW * dpr / g.dispW, MAX_SIDE / Math.max(g.dispW, g.dispH));
     try {
-      const c = await renderPageCanvas(await doc.pjs, page, scale, { onTask: t => (curTask = t) });
+      const c = await renderPageCanvas(await doc.pjs, order[page], scale, { onTask: t => (curTask = t) });
       if (gen !== renderGen) return;
       el.base.width = c.width; el.base.height = c.height;
       el.base.getContext('2d').drawImage(c, 0, 0);
@@ -343,20 +366,20 @@ export function initEdit(ctx){
   function renderFoot(){
     if (!doc) return;
     const byPage = new Map();
-    objects.forEach(o => byPage.set(o.page, (byPage.get(o.page) || 0) + 1));
+    objects.forEach(o => { const i = order.indexOf(o.page); if (i >= 0) byPage.set(i, (byPage.get(i) || 0) + 1); });
     const total = objects.length;
     el.cnt.innerHTML = total
       ? `<b>${total}개</b> 넣었어요 · ` + [...byPage.keys()].sort((a, b) => a - b).map(p => `${p + 1}쪽 ${byPage.get(p)}`).join(' · ')
-      : `${doc.pages.length}페이지 · 아직 넣은 게 없어요`;
+      : `${order.length}페이지 · 아직 넣은 게 없어요`;
     el.undo.disabled = !undoStack.length;
-    el.del.disabled = sel == null;
     el.go.textContent = out === 'pdf' ? 'PDF로 저장' : 'PNG로 저장';
     el.go.disabled = !objects.length;
   }
 
   function setTool(t){
     tool = t;
-    [...el.tools.children].forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    [...el.tools.querySelectorAll('button')].forEach(b => b.classList.toggle('on', b.dataset.t === t));
+    if (el.tools._slide) el.tools._slide();
     el.page.classList.toggle('pen', t === 'pen');
     el.page.classList.toggle('erase', t === 'erase');
     if (t !== 'select' && sel != null){ sel = null; syncObjects(); }
@@ -395,7 +418,7 @@ export function initEdit(ctx){
     };
 
     el.page.addEventListener('pointerdown', e => {
-      if (!doc) return;
+      if (!doc || e.button !== 0) return;      // 오른쪽 버튼은 화면 옮기기(팬) 몫
       sx = e.clientX; sy = e.clientY; moved = 0;
       if (tool === 'erase'){
         const n = norm(e);
@@ -409,7 +432,7 @@ export function initEdit(ctx){
         // 펜을 켠 채로도 도장·글자를 톡 누르면 고를 수 있게, 눌린 오브젝트를 기억해 둔다(움직이면 그냥 획).
         tapObj = e.target.closest('.edobj');
         snapshot();
-        ink = { id: uid(), page, type: 'ink', pts: [[n.u, n.v]], sw: INK_SW };
+        ink = { id: uid(), page: order[page], type: 'ink', pts: [[n.u, n.v]], sw: INK_SW };
         objects.push(ink); mode = 'ink';
         try { el.page.setPointerCapture(e.pointerId); } catch(_){}
         syncObjects(); e.preventDefault();
@@ -480,7 +503,13 @@ export function initEdit(ctx){
         }
         ink = null; tapObj = null; syncObjects();
       } else if (mode === 'size'){
-        const a = assetOf(start.o.assetId); if (a && !a.temp){ a.lastW = start.o.w; persistAssets(); }
+        // 우상단(✕)은 한 자리 두 역할 — 안 움직이고 뗐으면 크기조절이 아니라 '빼기'
+        if (start.corner === 'ne' && moved < 5){
+          objects = objects.filter(o => o !== start.o);
+          sel = null; syncObjects();
+        } else {
+          const a = assetOf(start.o.assetId); if (a && !a.temp){ a.lastW = start.o.w; persistAssets(); }
+        }
       }
       el.objs.querySelectorAll('.sizing').forEach(n => n.classList.remove('sizing'));
       mode = null; start = null;
@@ -488,6 +517,27 @@ export function initEdit(ctx){
     };
     el.page.addEventListener('pointerup', end);
     el.page.addEventListener('pointercancel', end);
+
+    /* 오른쪽 버튼으로 끌어서 화면 옮기기 — 도구가 무엇이든(선택·펜·지우개) 똑같이 동작한다.
+       확대해 놓고 그리는 중에 손을 떼지 않고 다른 자리로 갈 수 있어야 하기 때문. */
+    let pan = null;
+    el.cv.addEventListener('contextmenu', e => e.preventDefault());
+    el.cv.addEventListener('pointerdown', e => {
+      if (e.button !== 2 || !doc) return;
+      pan = { x: e.clientX, y: e.clientY, l: el.cv.scrollLeft, t: el.cv.scrollTop };
+      el.cv.classList.add('panning');
+      try { el.cv.setPointerCapture(e.pointerId); } catch(_){}
+      e.preventDefault();
+    });
+    el.cv.addEventListener('pointermove', e => {
+      if (!pan) return;
+      el.cv.scrollLeft = pan.l - (e.clientX - pan.x);
+      el.cv.scrollTop  = pan.t - (e.clientY - pan.y);
+      e.preventDefault();
+    });
+    const panEnd = () => { if (!pan) return; pan = null; el.cv.classList.remove('panning'); };
+    el.cv.addEventListener('pointerup', panEnd);
+    el.cv.addEventListener('pointercancel', panEnd);
   }
 
   /* ══════════ 내보내기 ══════════ */
@@ -519,10 +569,10 @@ export function initEdit(ctx){
     const embeds = new Map();                                       // 소스당 embed 1회 — 없으면 파일이 폭증한다
     const maxPt = new Map();
     objects.forEach(o => { if (o.type === 'image')
-      maxPt.set(o.assetId, Math.max(maxPt.get(o.assetId) || 0, o.w * geoOf(o.page).dispW)); });
+      maxPt.set(o.assetId, Math.max(maxPt.get(o.assetId) || 0, o.w * geoSrc(o.page).dispW)); });
 
     for (const o of objects){                                       // 배열 순서 = 겹침 순서
-      const g = geoOf(o.page), pg = pages[o.page];
+      const g = geoSrc(o.page), pg = pages[o.page];                 // o.page = 원본 인덱스
       if (!pg) continue;
       if (o.type === 'image'){
         const a = assetOf(o.assetId); if (!a) continue;
@@ -536,15 +586,18 @@ export function initEdit(ctx){
                             borderWidth: o.sw * g.dispW, borderLineCap: LineCapStyle.Round });
       }
     }
+    // 뺀 페이지는 그린 뒤에 제거한다(인덱스가 밀리지 않게 뒤에서부터)
+    const keep = new Set(order);
+    for (let i = pages.length - 1; i >= 0; i--) if (!keep.has(i)) pdf.removePage(i);
     return pdf.save();
   }
 
   /* PNG 경로는 좌표 변환이 없다 — 뷰포트가 이미 회전·CropBox를 반영해 렌더하므로 폭 배수만 곱하면 된다 */
   async function buildEditedPngs(base){
-    const pjs = await doc.pjs, n = doc.pages.length, items = [];
+    const pjs = await doc.pjs, n = order.length, items = [];
     const bmps = new Map();                                        // 소스당 1회 디코드
     for (let i = 0; i < n; i++){
-      const c = await renderPageCanvas(pjs, i, DPI / 72);
+      const c = await renderPageCanvas(pjs, order[i], DPI / 72);
       const k = c.width, g2 = c.getContext('2d');
       for (const o of objsOn(i)){
         if (o.type === 'image'){
@@ -629,7 +682,7 @@ export function initEdit(ctx){
   let pendingDoc = null;
 
   function reset(){
-    doc = null; objects = []; undoStack = []; sel = null; page = 0; zoom = 1; applyZoom();
+    doc = null; objects = []; order = []; undoStack = []; sel = null; page = 0; zoom = 1; applyZoom();
     assets.filter(a => a.temp).forEach(a => URL.revokeObjectURL(a.url));
     assets = assets.filter(a => !a.temp);
     if (curTask){ try { curTask.cancel(); } catch(e){} curTask = null; }
@@ -645,9 +698,10 @@ export function initEdit(ctx){
       empty: $('#edEmpty'), main: $('#edMain'), rail: $('#edRail'), cv: $('#edCv'),
       page: $('#edPage'), base: $('#edBase'), ink: $('#edInk'), objs: $('#edObjs'),
       chips: $('#edChips'), cnt: $('#edCnt'), go: $('#edGo'), undo: $('#edUndo'),
-      del: $('#edDel'), tools: $('#edTools'), zone: $('#edZone'),
+      tools: $('#edTools'), zone: $('#edZone'),
       zoom: $('#edZoom'), zoomV: $('#edZoomV'), repSheet: $('#edResetSheet')
     });
+    initSegSlide(el.tools); initSegSlide($('#edOut'));
 
     el.zone.addEventListener('click', () => $('#edInput').click());
     $('#edInput').addEventListener('change', e => { if (e.target.files[0]) loadDoc(e.target.files[0]); e.target.value = ''; });
@@ -661,7 +715,6 @@ export function initEdit(ctx){
       const b = e.target.closest('button'); if (b) setTool(b.dataset.t);
     });
     el.undo.addEventListener('click', undo);
-    el.del.addEventListener('click', delSel);
 
     // 휠 확대 — 커서 아래 지점을 붙잡은 채 키운다
     el.cv.addEventListener('wheel', e => {
@@ -707,7 +760,7 @@ export function initEdit(ctx){
     $('#edOut').addEventListener('click', e => {
       const b = e.target.closest('button'); if (!b) return;
       out = b.dataset.o;
-      [...$('#edOut').children].forEach(x => x.classList.toggle('on', x === b));
+      [...$('#edOut').querySelectorAll('button')].forEach(x => x.classList.toggle('on', x === b));
       renderFoot();
     });
     el.go.addEventListener('click', save);
@@ -741,10 +794,11 @@ export function initEdit(ctx){
   return {
     hasDoc: () => !!doc,
     drop, loadDoc, addAsset, place, delSel, undo, setPage, setTool, setZoom, eraseAt,
-    setOut: v => { out = v; [...$('#edOut').children].forEach(x => x.classList.toggle('on', x.dataset.o === v)); renderFoot(); },
-    addInk: (p, pts) => { snapshot(); objects.push({ id: uid(), page: p, type: 'ink', pts, sw: INK_SW }); syncObjects(); renderRailMarks(); renderFoot(); },
+    removePage,
+    setOut: v => { out = v; [...$('#edOut').querySelectorAll('button')].forEach(x => x.classList.toggle('on', x.dataset.o === v)); if ($('#edOut')._slide) $('#edOut')._slide(); renderFoot(); },
+    addInk: (p, pts) => { snapshot(); objects.push({ id: uid(), page: order[p], type: 'ink', pts, sw: INK_SW }); syncObjects(); renderRailMarks(); renderFoot(); },
     buildPdf: buildEditedPdf, buildPngs: buildEditedPngs, save, reset,
-    state: () => ({ doc, assets, objects, sel, page, tool, out, zoom, undo: undoStack.length }),
+    state: () => ({ doc, assets, objects, sel, page, tool, out, zoom, order, undo: undoStack.length }),
     geom: { measurePages, dispToPdfImage, inkPathD, vpOf, objH, distToStroke }
   };
 }
