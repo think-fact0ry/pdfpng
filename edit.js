@@ -698,7 +698,7 @@ export function initEdit(ctx){
       empty: $('#edEmpty'), main: $('#edMain'), rail: $('#edRail'), cv: $('#edCv'),
       page: $('#edPage'), base: $('#edBase'), ink: $('#edInk'), objs: $('#edObjs'),
       chips: $('#edChips'), cnt: $('#edCnt'), go: $('#edGo'), undo: $('#edUndo'),
-      tools: $('#edTools'), zone: $('#edZone'),
+      tools: $('#edTools'), zone: $('#edZone'), bar: $('#edMain .edbar'),
       zoom: $('#edZoom'), zoomV: $('#edZoomV'), repSheet: $('#edResetSheet')
     });
     initSegSlide(el.tools); initSegSlide($('#edOut'));
@@ -777,6 +777,23 @@ export function initEdit(ctx){
       else if (e.key === 'Delete' || e.key === 'Backspace'){ if (sel != null){ e.preventDefault(); delSel(); } }
       else if (e.key === 'Escape'){ if (tool !== 'select') setTool('select'); else if (zoom !== 1) setZoom(1); else if (sel != null){ sel = null; syncObjects(); renderFoot(); } }
     });
+
+    /* 툴바 접기 — "몇 px부터"를 박지 않고 실제로 줄바꿈이 났는지 재서 판단한다.
+       라벨·폰트·버튼이 바뀌어도 임계를 다시 안 잡아도 된다(§3.7 매직 px 금지).
+       관찰 대상은 툴바가 아니라 그 부모 — 접기가 툴바 크기를 바꿔 관찰이 되먹임하는 걸 피한다. */
+    // ⚠️ .edgap은 높이 0이라 세로 중앙에 앉는다 → offsetTop이 늘 달라 '줄 수'를 오판한다. 실체 있는 것만 센다.
+    const barRows = () => new Set([...el.bar.children].filter(c => c.offsetWidth && c.offsetHeight).map(c => c.offsetTop)).size;
+    function fitBar(){
+      el.bar.classList.remove('c1');
+      if (barRows() > 1) el.bar.classList.add('c1');
+    }
+    let lastBarW = -1;
+    new ResizeObserver(es => {
+      const w = Math.round(es[0].contentRect.width);
+      if (w === lastBarW) return;
+      lastBarW = w; fitBar();
+    }).observe(el.main);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBar);
 
     let rz;
     window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (doc && $('#scrEdit').classList.contains('on')) renderStage(); }, 160); });
