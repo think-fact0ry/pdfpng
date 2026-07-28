@@ -226,10 +226,11 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .edobj .h.nw{left:-7px;top:-7px;cursor:nwse-resize}
 .edobj .h.sw{left:-7px;bottom:-7px;cursor:nesw-resize}
 .edobj .h.se{right:-7px;bottom:-7px;cursor:nwse-resize}
-/* 우상단 = 한 자리 두 역할: 톡 누르면 빼기(✕), 끌면 크기조절 */
-.edobj .h.ne{right:-10px;top:-10px;width:21px;height:21px;align-items:center;justify-content:center;cursor:nesw-resize;box-shadow:0 1px 3px rgba(25,31,40,.16)}
+/* 우상단 = 한 자리 두 역할: 톡 누르면 빼기(✕), 끌면 크기조절.
+   도장이 작을 땐 이 원이 도장보다 커 보이므로 최소 터치타깃(§4.9) 안에서 최대한 작게. */
+.edobj .h.ne{right:-8px;top:-8px;width:17px;height:17px;align-items:center;justify-content:center;cursor:nesw-resize;box-shadow:0 1px 3px rgba(25,31,40,.16)}
 .edobj.sel .h.ne{display:flex}
-.edobj .h.ne::before,.edobj .h.ne::after{content:'';position:absolute;width:9px;height:2px;border-radius:2px;background:var(--green)}
+.edobj .h.ne::before,.edobj .h.ne::after{content:'';position:absolute;width:7px;height:1.8px;border-radius:2px;background:var(--green)}
 .edobj .h.ne::before{transform:rotate(45deg)}
 .edobj .h.ne::after{transform:rotate(-45deg)}
 .edobj .h.ne:hover{background:var(--danger);border-color:var(--danger)}
@@ -250,6 +251,7 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .edtxt{display:flex;flex-direction:column;gap:10px}
 .edtxt input{border:0;background:var(--g100);border-radius:var(--r-md);padding:15px 16px;font:inherit;font-size:var(--fs-title);font-weight:600;outline:none;width:100%}
 .edtxt input:focus{background:#fff;box-shadow:inset 0 0 0 1.5px var(--green)}
+.edtxt input::placeholder{color:var(--g400);font-weight:500}   /* 예시는 실제 입력값보다 확실히 연하게 */
 
 /* ── 오버레이·토스트 ── */
 .busy{position:fixed;inset:0;background:rgba(255,255,255,.75);z-index:850;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px}
@@ -337,8 +339,8 @@ input[type=file]{display:none}
           <button type="button" data-t="erase"><svg class="li" viewBox="0 0 24 24"><path d="m5 15 6-6 7 7-3 3H8zM21 20H9"/></svg>지우개</button>
         </div>
         <span class="edgap"></span>
-        <button type="button" class="edtool act" id="edAddImg"><svg class="li" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg>이미지 넣기</button>
-        <button type="button" class="edtool act" id="edAddTxt"><svg class="li" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>글자 넣기</button>
+        <button type="button" class="edtool act" id="edAddImg"><svg class="li" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="m3 15 5-5 4 4 3-3 6 6"/></svg>이미지</button>
+        <button type="button" class="edtool act" id="edAddTxt"><svg class="li" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg>텍스트</button>
         <button type="button" class="edtool" id="edUndo" disabled><svg class="li" viewBox="0 0 24 24"><path d="M4 8a8 8 0 1 1-2 6M4 3v5h5"/></svg>되돌리기</button>
       </div>
       <div class="edchips" id="edChips"></div>
