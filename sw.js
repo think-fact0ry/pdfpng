@@ -1,6 +1,6 @@
 // PDF 도구 서비스워커 — attend/sw.js 패턴 + vendor(대용량·불변)만 cache-first.
 // 배포마다 CACHE 버전 올릴 것(vendor 교체도 버전으로 갱신됨).
-var CACHE = 'tf-pdfpng-v12';
+var CACHE = 'tf-pdfpng-v13';
 var SHELL = [
   './', './index.html', './edit.js', './install.js', './manifest.json',
   './vendor/pdf.min.mjs', './vendor/pdf.worker.min.mjs', './vendor/pdf-lib.min.js',

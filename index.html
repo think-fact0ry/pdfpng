@@ -148,11 +148,14 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .csheet .cgo.ok{background:var(--green600)}   /* 파괴적이지 않은 확정(글자 넣기 등) */
 
 /* ── 편집: 툴바(위 한 줄) → 페이지 레일 + 캔버스(같은 줄) ── */
-#edMain{display:flex;flex-direction:column;flex:1;min-height:0}
-/* ⚠️ 높이를 확정해야 캔버스가 '스크롤되는 창'이 된다. #app이 min-height라 flex:1 체인만으론
-   높이가 콘텐츠로 풀려 스크롤이 안 생기고, 그러면 확대가 커서를 못 따라간다(세로가 늘 위로 고정).
-   290px = 위아래 UI 높이. 페이지 폭 계산(--fitw, 100dvh-330)과 맞물려 배율 100%에서 딱 들어맞는다. */
-.edwrap{display:flex;gap:18px;align-items:stretch;height:calc(100dvh - 290px);min-height:340px}
+/* ⚠️ min-height:0을 주면 안 된다 — flex 자식이 콘텐츠보다 작아져도 된다는 뜻이라
+   세로가 짧을 때 아래 저장 버튼이 잘리고, #app도 안 넘쳐 스크롤조차 안 생긴다(유성 2026-07-28, 630px).
+   기본값(auto)으로 두면 콘텐츠 높이를 지켜 #app이 넘치고 → 스크롤을 내리면 버튼이 온전히 보인다. */
+#edMain{display:flex;flex-direction:column;flex:1}
+/* 남는 세로를 다 차지하되 최소 340px은 지킨다(그보다 짧아지면 페이지 전체가 스크롤).
+   ⚠️ 캔버스가 '스크롤되는 창'이려면 높이가 확정돼야 한다 — flex:1 + 위아래 형제가 고정 높이라
+   여기서 높이가 정해진다. 안 그러면 확대가 커서를 못 따라간다(세로가 늘 위로 고정). */
+.edwrap{display:flex;gap:18px;align-items:stretch;flex:1;min-height:340px}
 /* ⚠️ overflow-y:auto는 CSS 규격상 overflow-x도 auto로 만든다 → 선택 링이 좌우에서 잘리고
    첫 항목은 위쪽까지 잘린다. 레일 안쪽 여백으로 링이 그려질 자리를 스크롤 영역 안에 확보한다. */
 .edrail{width:126px;flex:none;display:flex;flex-direction:column;gap:11px;overflow-y:auto;padding:6px 7px}
@@ -202,7 +205,8 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 
 .edcvwrap{position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0}
 /* safe center = 내용이 넘치면 중앙정렬을 포기하고 start로 — margin:auto는 확대 시 앵커를 깨뜨린다 */
-.edcv{background:var(--g100);border-radius:var(--r-md);padding:18px;display:flex;justify-content:safe center;align-items:safe center;overflow:auto;flex:1;min-height:0;outline:2px dashed transparent;outline-offset:-6px;transition:outline-color .15s,background .15s}
+/* container-type:size → 자식이 100cqh/100cqw로 이 창의 실제 크기를 쓸 수 있다(페이지가 창에 맞춰 커짐) */
+.edcv{background:var(--g100);border-radius:var(--r-md);padding:18px;display:flex;justify-content:safe center;align-items:safe center;overflow:auto;flex:1;min-height:0;container-type:size;outline:2px dashed transparent;outline-offset:-6px;transition:outline-color .15s,background .15s}
 .edcv.panning{cursor:grabbing}
 .edcv.drag{outline-color:var(--green500);background:var(--green50)}
 /* 확대 배율 칩 — 100%가 아닐 때만 나타난다(평소 툴바를 깨끗하게) */
@@ -214,7 +218,8 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
    --par(가로÷세로)만 JS가 넣고 치수는 CSS가 정한다(§3.7 매직 px 금지). */
 .edpage{position:relative;background:#fff;box-shadow:0 2px 14px rgba(25,31,40,.14);line-height:0;touch-action:none;flex:none;
   aspect-ratio:var(--par,.7071);
-  --fitw:min(100%,max(300px,calc((100dvh - 330px) * var(--par,.7071))));
+  /* 창 높이에 맞춘 폭(=한 장이 다 보임), 단 창보다 넓어지진 않게. 창이 커지면 페이지도 같이 커진다. */
+  --fitw:max(280px,min(calc(100cqh * var(--par,.7071)),100cqw));
   width:calc(var(--fitw) * var(--zoom,1))}
 .edpage canvas.base{display:block;width:100%;height:auto}
 .edpage.pen{cursor:crosshair}
@@ -283,7 +288,7 @@ input[type=file]{display:none}
     <div class="col">
       <div class="chip" id="dirChip">
         <svg class="li" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
-        <div class="ct" id="dirName">폴더를 고르면 PNG가 바로 거기에 저장돼요</div>
+        <div class="ct" id="dirName">폴더를 고르면 계속 거기에 저장돼요</div>
         <button type="button" id="dirPick">폴더 고르기</button>
         <button type="button" class="cx" id="dirClear" style="display:none" aria-label="끌어온 폴더 해제">×</button>
       </div>
@@ -302,6 +307,12 @@ input[type=file]{display:none}
 
   <!-- 병합하기: PDF·이미지 → 한 PDF -->
   <section class="scr" id="scrMerge">
+    <div class="chip" id="mgDirChip">
+      <svg class="li" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+      <div class="ct" id="mgDirName">폴더를 고르면 계속 거기에 저장돼요</div>
+      <button type="button" id="mgDirPick">폴더 고르기</button>
+      <button type="button" class="cx" id="mgDirClear" style="display:none" aria-label="끌어온 폴더 해제">×</button>
+    </div>
     <div id="mgEmpty">
       <div class="col">
         <div class="zone" id="mgZone" style="padding:76px 24px">
@@ -467,6 +478,9 @@ function setTab(t){
   if (!SCREENS[t]) return;
   document.querySelectorAll('.hd .seg button').forEach(b => b.classList.toggle('on', b.dataset.t === t));
   for (const k in SCREENS) $(SCREENS[k]).classList.toggle('on', k === t);
+  // 코드로 탭을 바꿔도 흰 필이 따라오게 — 클릭 이벤트에만 맡기면 launchQueue 등에서 어긋난다
+  const seg = document.querySelector('.hd .seg');
+  if (seg && seg._slide) requestAnimationFrame(seg._slide);
 }
 function curTab(){ for (const k in SCREENS) if ($(SCREENS[k]).classList.contains('on')) return k; return 'convert'; }
 document.querySelectorAll('.hd .seg button').forEach(b => b.addEventListener('click', () => setTab(b.dataset.t)));
@@ -526,18 +540,25 @@ async function saveItems(items, dir){
 let savedDir = null, dropDir = null;   // dropDir = 폴더째 끌어온 경우 그 폴더에 저장(우선)
 let cvFiles = [];                      // {file, pages, status:'ready'|'work'|'ok'|'bad', done, msg}
 
+/* 저장 폴더 칩 — 변환·병합 두 탭이 같은 폴더 설정을 공유한다(칩만 각자, 상태는 하나) */
+const DIR_CHIPS = [{ n: '#dirName', p: '#dirPick', c: '#dirClear' }, { n: '#mgDirName', p: '#mgDirPick', c: '#mgDirClear' }];
 function renderDirChip(){
-  const n = $('#dirName'), clear = $('#dirClear');
-  if (dropDir){ n.innerHTML = `끌어온 폴더 <b></b>에 저장해요`; n.querySelector('b').textContent = `'${dropDir.name}'`; clear.style.display = ''; }
-  else if (savedDir){ n.innerHTML = `저장 폴더 - <b></b>`; n.querySelector('b').textContent = savedDir.name; clear.style.display = 'none'; }
-  else { n.textContent = '폴더를 고르면 저장 위치를 정하지 않아도 계속 거기에 저장돼요'; clear.style.display = 'none'; }
-  if (!hasFS){ n.textContent = '변환한 파일은 다운로드 폴더로 받아요'; $('#dirPick').style.display = 'none'; }
+  DIR_CHIPS.forEach(({ n: ns, p: ps, c: cs }) => {
+    const n = $(ns), clear = $(cs); if (!n) return;
+    if (dropDir){ n.innerHTML = `끌어온 폴더 <b></b>에 저장해요`; n.querySelector('b').textContent = `'${dropDir.name}'`; clear.style.display = ''; }
+    else if (savedDir){ n.innerHTML = `저장 폴더 - <b></b>`; n.querySelector('b').textContent = savedDir.name; clear.style.display = 'none'; }
+    else { n.textContent = '폴더를 고르면 계속 거기에 저장돼요'; clear.style.display = 'none'; }
+    if (!hasFS){ n.textContent = '만든 파일은 다운로드 폴더로 받아요'; $(ps).style.display = 'none'; }
+  });
 }
-$('#dirPick').addEventListener('click', async () => {
-  if (!hasFS) return;
-  try { savedDir = await showDirectoryPicker({ mode: 'readwrite' }); dropDir = null; await idb.set('outDir', savedDir); renderDirChip(); } catch(e){}
+DIR_CHIPS.forEach(({ p, c }) => {
+  const pick = $(p), clear = $(c);
+  if (pick) pick.addEventListener('click', async () => {
+    if (!hasFS) return;
+    try { savedDir = await showDirectoryPicker({ mode: 'readwrite' }); dropDir = null; await idb.set('outDir', savedDir); renderDirChip(); } catch(e){}
+  });
+  if (clear) clear.addEventListener('click', () => { dropDir = null; renderDirChip(); });
 });
-$('#dirClear').addEventListener('click', () => { dropDir = null; renderDirChip(); });
 idb.get('outDir').then(h => { if (h) { savedDir = h; renderDirChip(); } }).catch(() => {});
 
 function renderCvRows(){
@@ -983,8 +1004,11 @@ $('#mgSave').addEventListener('click', async () => {
   if (!mgItems.length) return;
   const first = sources.get(mgItems[0].srcId);
   const name = `${baseName(first.name)}-병합됨.pdf`;
+  // 폴더를 골라뒀으면 묻지 않고 거기에(변환 탭과 같은 규칙), 아니면 저장 위치를 묻는다
+  const dir = dropDir || savedDir;
   let fh = null;
-  if ('showSaveFilePicker' in window){
+  if (dir){ if (!(await ensureRW(dir))){ toast('폴더 권한을 허용하면 저장할 수 있어요'); return; } }
+  else if ('showSaveFilePicker' in window){
     try { fh = await showSaveFilePicker({ suggestedName: name, types: [{ description: 'PDF', accept: { 'application/pdf': ['.pdf'] } }] }); }
     catch(e){ return; }   // 저장 창을 닫음 = 그대로 둠
   }
@@ -992,10 +1016,12 @@ $('#mgSave').addEventListener('click', async () => {
   try {
     const bytes = await buildMergedPdf();
     const blob = new Blob([bytes], { type: 'application/pdf' });
-    if (fh){ const w = await fh.createWritable(); await w.write(blob); await w.close(); }
+    let over = 0;
+    if (dir) over = await saveItems([{ name, blob }], dir);
+    else if (fh){ const w = await fh.createWritable(); await w.write(blob); await w.close(); }
     else dl(name, blob);
     busy(false);
-    showDone('PDF를 저장했어요', '', false);
+    showDone('PDF를 저장했어요', over ? '같은 이름이 있어 덮어썼어요' : (!dir && !fh ? '다운로드 폴더로 받았어요' : ''), false);
   } catch(err){ busy(false); toast('PDF를 만드는 데 실패했어요'); }
 });
 
