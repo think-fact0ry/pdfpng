@@ -1,6 +1,6 @@
-// PDF 도구 서비스워커 — attend/sw.js 패턴 + vendor(대용량·불변)만 cache-first.
-// 배포마다 CACHE 버전 올릴 것(vendor 교체도 버전으로 갱신됨).
-var CACHE = 'tf-pdfpng-v14';
+﻿// PDF ?꾧뎄 ?쒕퉬?ㅼ썙而???attend/sw.js ?⑦꽩 + vendor(??⑸웾쨌遺덈?)留?cache-first.
+// 諛고룷留덈떎 CACHE 踰꾩쟾 ?щ┫ 寃?vendor 援먯껜??踰꾩쟾?쇰줈 媛깆떊??.
+var CACHE = 'tf-pdfpng-v15';
 var SHELL = [
   './', './index.html', './edit.js', './install.js', './manifest.json',
   './vendor/pdf.min.mjs', './vendor/pdf.worker.min.mjs', './vendor/pdf-lib.min.js',
@@ -32,7 +32,7 @@ self.addEventListener('fetch', function(e){
   var immutable = url.origin === self.location.origin &&
     (url.pathname.indexOf('/vendor/') !== -1 || url.pathname.indexOf('/icons/') !== -1);
   if (immutable){
-    // vendor 2MB+ — 매 로드 재다운로드 방지(속도). 갱신은 CACHE 버전 bump로.
+    // vendor 2MB+ ??留?濡쒕뱶 ?щ떎?대줈??諛⑹?(?띾룄). 媛깆떊? CACHE 踰꾩쟾 bump濡?
     e.respondWith(
       caches.match(req).then(function(r){
         return r || fetch(req).then(function(res){
