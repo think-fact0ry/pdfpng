@@ -12,7 +12,8 @@
  */
 export function initEdit(ctx){
   const { pdfjsLib, PDFLib, $, toast, busy, dl, showDone, baseName, DPI,
-          getPjs, renderPageCanvas, saveItems, idb, ensureRW, setTab, initSegSlide, getOutDir } = ctx;
+          getPjs, renderPageCanvas, saveItems, idb, ensureRW, setTab, initSegSlide, getOutDir,
+          exifOrientation, bakeImageBytes } = ctx;
   const { PDFDocument, rgb, degrees, LineCapStyle } = PDFLib;
 
   const PT_MM   = 25.4 / 72;      // 1pt를 mm로
@@ -145,8 +146,12 @@ export function initEdit(ctx){
 
   async function addAsset(file){
     if (!/\.(png|jpe?g)$/i.test(file.name)){ toast('PNG·JPG 이미지만 넣을 수 있어요'); return null; }
-    const bytes = await file.arrayBuffer();
+    let bytes = await file.arrayBuffer();
     const type = /\.png$/i.test(file.name) ? 'png' : 'jpg';
+    // 폰 사진(EXIF 방향)은 여기서 한 번 구워 세워 둔다 — 화면은 브라우저가 돌려 보여주지만 PDF엔 방향 개념이 없어,
+    // 눕힌 원본을 그대로 들고 있으면 natW/natH(=<img> 기준)와 embed 결과가 어긋난다.
+    // 굽기는 브라우저가 이미 세워 준 그림을 그대로 다시 쓰는 것이라 각도를 더 줄 필요가 없다(0).
+    if (exifOrientation(bytes) !== 1) bytes = await bakeImageBytes(bytes, 0, type);
     const a = hydrate({ id: uid(), name: file.name, type, bytes, natW: 0, natH: 0, lastW: STAMP_W });
     const img = new Image(); img.src = a.url; await img.decode();
     a.natW = img.naturalWidth; a.natH = img.naturalHeight;
