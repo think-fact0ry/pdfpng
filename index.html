@@ -12,18 +12,33 @@
 @font-face{font-family:'Pretendard Variable';src:url('./vendor/PretendardVariable.woff2') format('woff2-variations');font-weight:45 920;font-display:swap}
 :root{
 /* TOKENS:START — docs/1 §3.1 정본(토큰동기.js) */
+
+  /* 회색 — §3.1 정본(중립 회색 스케일). 필요한 칸만 골라 써도 되나 이름·값은 이대로 */
   --g50:#f9fafb; --g100:#f2f4f6; --g200:#e5e8eb; --g300:#d1d6db;
   --g400:#b0b8c1; --g500:#8b95a1; --g600:#6b7684; --g700:#4e5968;
   --g800:#333d4b; --g900:#191f28;
+  /* 초록 — §3.1 OKLCH 스케일(회색 명도 사다리 고정, green600=브랜드 #3a8a5f 앵커).
+     밝은 50~400 = 토스 weak 실측 기반 재보정(2026-07-04 유성 #e9f8ee 확정 — ex43 실측 C.021·브랜드 H157,
+     100→500 수렴 가중 1/.85/.62/.40/.20으로 이음새 없음. 옛 A안 채도부스트 값 폐기) */
   --green50:#f8fbf9; --green100:#e9f8ee; --green200:#cef2db; --green300:#a7e7c0; --green400:#7bcb9c;
   --green500:#57a77a; --green600:#3a8a5f; --green700:#166841; --green800:#01492a; --green900:#002614;
-  --green:var(--green600); --green-dark:var(--green700); --green-bg:var(--green100);
-  --red:#f04452; --ink-on-dark:#F9FBFA;
-  --dark:#525966; --danger:#D25357;
-  --danger-weak-bg:#fdecee; --danger-weak-fg:#c0392b;
-  --p-disabled:#b7e0c8;
-  --warn:#f5a623; --warn-weak-bg:#fef4e2; --warn-weak-fg:#c07f00;
-/* TOKENS:END */
+  --green:var(--green600); --green-dark:var(--green700); --green-bg:var(--green100);  /* 별칭(기존 코드 호환) */
+  /* 시맨틱 */
+  --red:#f04452;           /* 에러·경고 상태(폼 오류·OTP 오류·알림) */
+  --warn:#f5a623;          /* 주의 신호(비오류) — 근태 지각 색 등(유성 확정 2026-07-14). red=오류/warn=주의 구분 */
+  --warn-weak-bg:#fef4e2; --warn-weak-fg:#8a5a00;   /* warn weak(연주황 채움+진한 갈색주황 폰트 — danger-weak 결). ⚠️fg는 2026-09-02 #c07f00→#8a5a00(유성 확정): 옛 값은 이 bg 위 대비 3.07(본문 4.5 미달, 정본에 실측 이력 없었음) → 5.43. 측정=WCAG 2.x 상대휘도 node 계산 2026-09-02 */
+  --ink-on-dark:#F9FBFA;   /* 어두운 배경 흰 글씨(§3.5 line125) */
+  /* 버튼·뱃지 시맨틱 (§4.14 버튼 체계 — 유성 2026-07-02) */
+  --dark:#525966;          /* dark variant(중립 짙은 회색 버튼/뱃지) + 흰 폰트 */
+  --danger:#D25357;        /* danger variant(파괴적 액션 버튼/뱃지) + 흰 폰트. ※--red(#f04452)와 구분: red=상태알림, danger=버튼 */
+  --danger-weak-bg:#fdecee; --danger-weak-fg:#c0392b;   /* danger weak(연빨강 채움+진한빨강 폰트) */
+  --p-disabled:#b7e0c8; --dark-disabled:#c8ccd0; --danger-disabled:#f2cdce;   /* disabled = variant 흐린 버전+흰폰트(회색 아님) */
+  /* 라운드 — §3.3 */
+  --r-sm:clamp(7px,1.8vw,10px); --r-md:clamp(10px,2.6vw,14px); --r-lg:clamp(13px,3.2vw,20px);
+  /* 타입 스케일 — §3.2 (큰 제목 clamp 유동 / 본문 고정) */
+  --fs-display:clamp(28px,6vw,42px); --fs-h1:clamp(23px,3.4vw,30px); --fs-h2:clamp(20px,2.6vw,26px); --fs-h3:20px;
+  --fs-title:17px; --fs-body:15px; --fs-sm:13.5px; --fs-caption:12px;
+  /* TOKENS:END */
   --r-md:14px; --r-lg:20px;
   --fs-title:17px; --fs-body:15px; --fs-sm:13.5px; --fs-caption:12px;
 }
