@@ -515,9 +515,10 @@ function initSegSlide(seg){
     const w = on ? on.getBoundingClientRect().width : 0;
     if (!w){ seg.classList.remove('slide'); return; }          // 아직 폭이 없으면 옛 방식으로 폴백
     const sr = seg.getBoundingClientRect(), br = on.getBoundingClientRect();
-    const pad = parseFloat(getComputedStyle(seg).paddingLeft) || 0;   // ::before의 기준은 패딩 박스
+    // ⚠️ 트랙 padding을 빼면 안 된다 — ::before{left:0}의 기준은 트랙 **왼쪽 끝**이다
+    //    (CDP getBoxModel 실측 2026-09-03: border 왼 = padding 왼). 빼면 필이 딱 그만큼 왼쪽으로 밀린다.
     seg.style.setProperty('--sw', w + 'px');
-    seg.style.setProperty('--sx', (br.left - sr.left - pad) + 'px');
+    seg.style.setProperty('--sx', (br.left - sr.left) + 'px');
     seg.classList.add('slide');
   };
   seg._slide = sync;
