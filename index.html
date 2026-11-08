@@ -36,6 +36,8 @@
   --p-disabled:#b7e0c8; --dark-disabled:#c8ccd0; --danger-disabled:#f2cdce;   /* disabled = variant 흐린 버전+흰폰트(회색 아님) */
   /* 라운드 — §3.3 */
   --r-sm:clamp(7px,1.8vw,10px); --r-md:clamp(10px,2.6vw,14px); --r-lg:clamp(13px,3.2vw,20px);
+  /* 토스트 — §5.5 (2026-11-07~08 유성: 알약, g800, 원 18px. 반지름 23 = 14.5px 글자 한 줄 높이 46의 절반 → 한 줄이면 알약, 여러 줄이면 같은 굽이) */
+  --toast-bg:var(--g800); --toast-fg:#F9FBFA; --toast-r:23px; --toast-ck:18px;
   /* 타입 스케일 — §3.2 (큰 제목 clamp 유동 / 본문 고정) */
   --fs-display:clamp(28px,6vw,42px); --fs-h1:clamp(23px,3.4vw,30px); --fs-h2:clamp(20px,2.6vw,26px); --fs-h3:20px;
   --fs-title:17px; --fs-body:15px; --fs-sm:13.5px; --fs-caption:12px;
@@ -295,7 +297,7 @@ svg.li{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-
 .spin{width:44px;height:44px;border-radius:50%;border:4px solid var(--green100);border-top-color:var(--green500);animation:sp 1s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 .busy .bt{font-size:var(--fs-body);font-weight:700;color:var(--g700)}
-.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--g800);color:#fff;font-size:var(--fs-sm);font-weight:600;border-radius:12px;padding:12px 18px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:900;max-width:88vw;text-align:center}
+.toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:var(--toast-bg);color:var(--toast-fg);font-size:14.5px;font-weight:600;border-radius:var(--toast-r);padding:12px 19px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:900;max-width:calc(100% - 32px);text-align:center;line-height:1.5;width:max-content}
 .toast.on{opacity:1}
 input[type=file]{display:none}
 </style>
