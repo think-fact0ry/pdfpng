@@ -145,7 +145,7 @@ export function initEdit(ctx){
   }
 
   async function addAsset(file){
-    if (!/\.(png|jpe?g)$/i.test(file.name)){ toast('PNG·JPG 이미지만 넣을 수 있어요'); return null; }
+    if (!/\.(png|jpe?g)$/i.test(file.name)){ toast('PNG, JPG 이미지만 넣을 수 있어요'); return null; }
     let bytes = await file.arrayBuffer();
     const type = /\.png$/i.test(file.name) ? 'png' : 'jpg';
     // 폰 사진(EXIF 방향)은 여기서 한 번 구워 세워 둔다 — 화면은 브라우저가 돌려 보여주지만 PDF엔 방향 개념이 없어,
@@ -673,7 +673,7 @@ export function initEdit(ctx){
 
   async function drop(files){
     const ok = files.filter(f => /\.(pdf|png|jpe?g)$/i.test(f.name));
-    if (!ok.length){ toast('PDF·PNG·JPG만 넣을 수 있어요'); return; }
+    if (!ok.length){ toast('PDF, PNG, JPG만 넣을 수 있어요'); return; }
     if (!doc){ await loadDoc(ok[0]); return; }
     const imgs = ok.filter(f => /\.(png|jpe?g)$/i.test(f.name));
     if (imgs.length === ok.length){                       // 문서가 열려 있고 이미지만 떨궜다 = 도장 추가

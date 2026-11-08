@@ -702,7 +702,7 @@ function renderCvRows(){
 async function addCvFiles(files){
   const ok = files.filter(f => /\.(pdf|png|jpe?g)$/i.test(f.name));
   const skipped = files.length - ok.length;
-  if (skipped) toast(`PDF·PNG·JPG만 넣을 수 있어요 — ${skipped}개는 뺐어요`);
+  if (skipped) toast(`PDF, PNG, JPG만 넣을 수 있어요 — ${skipped}개는 뺐어요`);
   for (const file of ok){
     const isPdf = /\.pdf$/i.test(file.name);
     const entry = { file, kind: isPdf ? 'pdf' : 'img', pages: isPdf ? null : 1, status: 'ready', done: 0, msg: '' };
@@ -740,7 +740,7 @@ async function routeConvertDrop(proms, plain){
     if (h.kind === 'directory'){
       const inner = await filesFromDir(h);
       if (inner.length){ dropDir = h; renderDirChip(); files.push(...inner); }
-      else toast('폴더에 PDF·이미지가 없어요');
+      else toast('폴더에 PDF나 이미지가 없어요');
     } else files.push(await h.getFile());
   }
   if (!usedHandles) files.push(...plain);
@@ -825,7 +825,7 @@ function getPjs(src){
 
 async function addMergeFiles(files, at){
   const ok = files.filter(f => /\.(pdf|png|jpe?g)$/i.test(f.name));
-  if (files.length - ok.length) toast(`PDF·PNG·JPG만 넣을 수 있어요 — ${files.length - ok.length}개는 뺐어요`);
+  if (files.length - ok.length) toast(`PDF, PNG, JPG만 넣을 수 있어요 — ${files.length - ok.length}개는 뺐어요`);
   const fresh = [];
   for (const file of ok){
     const bytes = await file.arrayBuffer();
