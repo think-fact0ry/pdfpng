@@ -34,12 +34,12 @@
   --danger:#D25357;        /* danger variant(파괴적 액션 버튼/뱃지) + 흰 폰트. ※--red(#f04452)와 구분: red=상태알림, danger=버튼 */
   --danger-weak-bg:#fdecee; --danger-weak-fg:#c0392b;   /* danger weak(연빨강 채움+진한빨강 폰트) */
   --p-disabled:#b7e0c8; --dark-disabled:#c8ccd0; --danger-disabled:#f2cdce;   /* disabled = variant 흐린 버전+흰폰트(회색 아님) */
-  /* 라운드 — §3.3 */
-  --r-sm:clamp(7px,1.8vw,10px); --r-md:clamp(10px,2.6vw,14px); --r-lg:clamp(13px,3.2vw,20px);
+  /* 라운드 — §3.3 (2026-11-11부터 폰에서도 안 줄임 = 폰과 PC 같은 값) */
+  --r-sm:10px; --r-md:14px; --r-lg:20px;
   /* 토스트 — §5.5 (2026-11-07~08 유성: 알약, g800, 원 18px. 반지름 23 = 14.5px 글자 한 줄 높이 46의 절반 → 한 줄이면 알약, 여러 줄이면 같은 굽이) */
   --toast-bg:var(--g800); --toast-fg:#F9FBFA; --toast-r:23px; --toast-ck:18px;
   /* 타입 스케일 — §3.2 (큰 제목 clamp 유동 / 본문 고정) */
-  --fs-display:clamp(28px,6vw,42px); --fs-h1:clamp(23px,3.4vw,30px); --fs-h2:clamp(20px,2.6vw,26px); --fs-h3:20px;
+  --fs-display:clamp(28px,6vw,42px); --fs-h1:clamp(24px,3.4vw,30px); --fs-h2:clamp(20px,2.6vw,26px); --fs-sheet:21px; --fs-h3:20px;
   --fs-title:17px; --fs-body:15px; --fs-sm:13.5px; --fs-caption:12px;
   /* 스크롤 그라디언트 — §4.13-6 A안. 스크롤바를 숨기는 곳에 "더 있다"를 말하는 그린 2겹.
      2026-09-05 정본 승격(유성) — 그전엔 provider-map·09가 각자 :root에 복붙한 이중 진실이었다. 값은 지도 원본 그대로 */
